@@ -1,0 +1,133 @@
+---
+title: DATA-413/613 Homework 05 API Data
+author: Your Name
+number-sections: true
+embed-resources: true
+format: html
+---
+
+
+
+**Use the {tidyverse}, {keyring}, {httr2}, and {jsonlite} packages for this question.**
+
+```{r}
+#| message: false
+library(tidyverse)
+library(keyring)
+library(httr2)
+library(jsonlite)
+```
+
+# Using an API of your choice
+
+1.  Pick a website of your choice (not discussed in class) that requires a free API key and has recent data. You may use an R package for the website or use {httr2} to interact directly with the API.\
+
+I chose https://api.open.fec.gov/developers/
+
+```{r}
+# key_set("fec_api_key")
+```
+
+2.  **Identify the link to instructions to obtain a key for the API.**\
+3.  Use your API with {keyring} to download a data set with multiple variables. **Do not include your key in your file.**\
+4.  Convert elements of interest into a tibble
+
+```{r}
+# Set the base URL for the FEC API
+base_url <- "https://api.open.fec.gov/v1/candidates/totals/"
+params <- list(election_year = "2026", state = "NC", per_page = 100, office = "S", election_full = TRUE, is_active_candidate = TRUE)
+
+# Construct the API query (example: candidate data)
+fundraising <- (request(base_url) |>
+  req_url_query(!!!params, api_key = keyring::key_get("fec_api_key")) |>
+  req_perform() |>
+  resp_body_json(resp = _))$results |>
+  tibble(data = _) |>
+  unnest_wider(data)
+```
+
+5.  State a question of interest.
+
+Is Wiley Nickel putting up a legit challenge to NC Sen. Thom Tillis?
+
+6.  Create an appropriate plot with proper labels and theme to analyze your question of interest.
+
+```{r}
+options(scipen = 999)
+fundraising |>
+  filter(has_raised_funds == TRUE) |> # get rid of the candidates who haven't raised money
+  rename(
+    `Total receipts` = receipts,
+    `Other political committee contribs.` = other_political_committee_contributions,
+    `Contributions over $200` = individual_itemized_contributions
+  ) |>
+  select(name, `Total receipts`, `Other political committee contribs.`, `Contributions over $200`) |>
+  pivot_longer(
+    cols = -name, # Keep name column as is
+    names_to = "contribution_type",
+    values_to = "amount"
+  ) |>
+  ggplot(aes(x = name, y = amount, fill = contribution_type)) +
+  geom_col(position = "dodge") + # Use position = "dodge" to make bars next to each other
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + # Rotate the x-axis labels for better readability
+  labs(
+    x = "Candidate",
+    title = "Fundraising Contributions by Candidate",
+    subtitle = "Tillis shows he has raised more and got more large-dolar contributions than Nickel",
+  )
+```
+
+
+
+7.  Interpret the plot to answer your question.
+
+Thom Tillis so far has a cash advantge over Wiley Nickel. Not only has he raised more, but he's getting more from other political committees and from donors who gave more than $200.
+
+8.  Read the site guidance for use of their data, e.g., terms and conditions, API documentation, or FAQ (if they exist)) and, in a few sentences, comment on the severity or strictness of the guidance or the lack of guidance. Discuss how the guidance could enable or restrain unethical uses of the data.
+
+One of the things that the FEC points out, is that users cannot use use contributor lists for commercial purposes or to solicit donations. That's particularly important, because if a donor has already given to candidates, they are probaly more likely to give to others.
+
+What's interesting about how they police that, is the Federal Election Campaign Act (the Act) may use a method of detecting whether the names and addresses of individual contributors are being used illegally by “salting” the report with up to ten fictitious contributor names. "A portion of the committee's unitemized contributions is attributed to each of the fictitious contributors."
+
+That could easily get someone in trouble if they solicit contributions to someone who the committee knows is fictitious, and they may may file a complaint with the FEC.
+
+
+##### multiple pages 
+
+generative AI solution for multiple pages - didn't go great 
+
+```{r}
+library(httr2)
+library(tidyverse)
+
+# Set API parameters
+base_url <- "https://api.open.fec.gov/v1/candidates/"
+params <- list(
+  election_year = "2026",
+  office = "S",
+  per_page = 100,
+  election_full = TRUE,
+  api_key = key_get("fec_api_key")
+)
+
+# Create the request
+req <- request(base_url) |> 
+  req_url_query(!!!params) |> 
+  req_throttle(rate = 30 / 60)
+
+# Use req_perform_iterative with built-in pagination
+responses <- req_perform_iterative(req, 
+                                   iterate_with_offset("page_index"))
+
+# Extract JSON and combine into one tibble
+fec_data <- responses |>
+  map(resp_body_json, simplifyVector = TRUE) |> 
+  map("results") |> 
+  keep(~ length(.x) > 0) |> # Remove empty responses
+  map_dfr(as_tibble) # Bind into one tibble
+
+# View the dataset
+glimpse(fec_data)
+
+```
+
