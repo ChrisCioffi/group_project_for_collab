@@ -18,7 +18,30 @@ library(httr2)
 library(jsonlite)
 ```
 
-# Using an API of your choice
+
+Next steps 
+
+Find sources on Why average american care about where lawmakers raise money
+
+As we find them post links and a few sentence summary of what the article says 
+
+
+
+
+#here's some website links we discussed  
+#this is the api documentation
+https://api.open.fec.gov/developers/#/
+#this is a map that shows presidential donations 
+https://www.fec.gov/data/candidates/president/presidential-map/
+#this is an interactive method users can dig into to look at individual elections 
+https://www.fec.gov/data/elections/?state=&cycle=2026&election_full=true
+#this shows aggregate donations for candidates 
+https://www.fec.gov/data/elections/senate/NC/2026/
+
+
+#heres' an old project I did with my coworkers that looked at the Arizona senate race that might help us figure out how to join data to shapefiles 
+
+https://github.com/ChrisCioffi/districts/blob/master/candidates.R
 
 1.  Pick a website of your choice (not discussed in class) that requires a free API key and has recent data. You may use an R package for the website or use {httr2} to interact directly with the API.\
 
@@ -94,7 +117,8 @@ That could easily get someone in trouble if they solicit contributions to someon
 
 ##### multiple pages 
 
-generative AI solution for multiple pages - didn't go great 
+took a generative AI solution for multiple pages - didn't go great 
+this is what we will need to get running to get all the contributions and group them by state 
 
 ```{r}
 library(httr2)
