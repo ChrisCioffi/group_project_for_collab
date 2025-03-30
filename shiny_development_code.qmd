@@ -4,9 +4,7 @@ format: html
 editor: visual
 ---
 
-
-Here's all the code needed to run the app so far - you can hit the play button to simulate a shiny environment - this can be where you start taking the names of states and turn it into maps 
-
+Here's all the code needed to run the app so far - you can hit the play button to simulate a shiny environment - this can be where you start taking the names of states and turn it into maps
 
 ```{r}
 library(shiny)
@@ -68,7 +66,7 @@ fetch_candidate_ids <- function(state_abbreviations) {
 
   # Generate a list of candidate IDs
   list_candidates <- candidates_per_state |>
-    select(name, candidate_id, receipts, other_political_committee_contributions, individual_itemized_contributions)
+    select(name, candidate_id, receipts, other_political_committee_contributions, individual_itemized_contributions, party)
 
   return(list_candidates) ## Corrected: Moved this line to ensure saving and loading happens first
 }
