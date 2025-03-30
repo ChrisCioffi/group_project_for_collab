@@ -3,3 +3,47 @@ title: "Vignette_final_proj"
 format: html
 ---
 
+Next steps
+
+Find sources on Why average american care about where lawmakers raise money
+
+As we find them post links and a few sentence summary of what the article says
+
+#here's some website links we discussed\
+#this is the api documentation <https://api.open.fec.gov/developers/#/> #this is a map that shows presidential donations <https://www.fec.gov/data/candidates/president/presidential-map/> #this is an interactive method users can dig into to look at individual elections <https://www.fec.gov/data/elections/?state=&cycle=2026&election_full=true> #this shows aggregate donations for candidates <https://www.fec.gov/data/elections/senate/NC/2026/>
+
+## **2.4 Conduct a Review of the Literature**
+
+Identify at least three references from either academic papers or widely-available authoritative sources that provide context for your topic.
+
+-   They should help you understand the extant work on the topic, possible questions, and indications about key variables or data sources.
+
+-   Identify the papers/sources in your vignette.
+
+-   You shall refer to them in your oral demonstration to set context.
+
+## **2.5 Define One or More Use Cases**
+
+Given a topic, data sources, and literature review, each group shall define one or more [Use Cases](https://www.usability.gov/how-to-and-tools/methods/use-cases.html) for its app to focus its effort.
+
+-   The Use Case shall specify “who” the typical user is expected to be (the Actor) and the typical questions your App should help the user/actor answer.
+
+-   Specifying a use case allows you to make some assumptions about the skills and knowledge of your typical user/actor to focus your app development and shape your user interface design.
+
+-   Summarize the Use Case(s) in your vignette and in your oral demonstration.
+
+## **2.8 Identify Areas of Contribution in the Plan and the Vignette**
+
+Each student is expected to contribute to the group project in a meaningful manner.
+
+The vignette shall contain a code chunk (with language engine `block` instead of `r` and chunk option `#| include: false`) indicating who contributed to the major portions of the project. These shall include the code for the app, code for data cleaning, and documentation at a minimum.
+
+-   It is fine to have multiple people contribute to a given portion of code but the comments shall indicate the relative level of contribution, e.g., primary contributor, co-contributors, or reviewer, or whatever is appropriate.
+
+-   This allows for better interpretation of the GitHub analytics on commits and lines of code/data/text in a commit.
+
+```{block}
+#| include: false
+
+
+```

@@ -6,9 +6,11 @@ embed-resources: true
 format: html
 ---
 
+Pick a website of your choice (not discussed in class) that requires a free API key and has recent data. You may use an R package for the website or use {httr2} to interact directly with the API.
+
+I chose https://api.open.fec.gov/developers/
 
 
-**Use the {tidyverse}, {keyring}, {httr2}, and {jsonlite} packages for this question.**
 
 ```{r}
 #| message: false
@@ -16,58 +18,67 @@ library(tidyverse)
 library(keyring)
 library(httr2)
 library(jsonlite)
+#devtools::install_github("stephenholzman/tidyusafec") 
+library(tidyusafec)
 ```
 
 
-Next steps 
-
-Find sources on Why average american care about where lawmakers raise money
-
-As we find them post links and a few sentence summary of what the article says 
-
-
-
-
-#here's some website links we discussed  
-#this is the api documentation
-https://api.open.fec.gov/developers/#/
-#this is a map that shows presidential donations 
-https://www.fec.gov/data/candidates/president/presidential-map/
-#this is an interactive method users can dig into to look at individual elections 
-https://www.fec.gov/data/elections/?state=&cycle=2026&election_full=true
-#this shows aggregate donations for candidates 
-https://www.fec.gov/data/elections/senate/NC/2026/
-
-
-#heres' an old project I did with my coworkers that looked at the Arizona senate race that might help us figure out how to join data to shapefiles 
-
-https://github.com/ChrisCioffi/districts/blob/master/candidates.R
-
-1.  Pick a website of your choice (not discussed in class) that requires a free API key and has recent data. You may use an R package for the website or use {httr2} to interact directly with the API.\
-
-I chose https://api.open.fec.gov/developers/
 
 ```{r}
 # key_set("fec_api_key")
 ```
 
 2.  **Identify the link to instructions to obtain a key for the API.**\
-3.  Use your API with {keyring} to download a data set with multiple variables. **Do not include your key in your file.**\
+3.  Use your API with {keyring} to download a data set with multiple variables. **Do not include your key in your file.**
 4.  Convert elements of interest into a tibble
+
+First let's find the name of the person running for office in a given state
 
 ```{r}
 # Set the base URL for the FEC API
-base_url <- "https://api.open.fec.gov/v1/candidates/totals/"
-params <- list(election_year = "2026", state = "NC", per_page = 100, office = "S", election_full = TRUE, is_active_candidate = TRUE)
+base_url_for_candidate_name  <- "https://api.open.fec.gov/v1/candidates/totals/"
+params <- list(election_year = "2026", state = "NC", per_page = 100, office = "S", election_full = TRUE, is_active_candidate = TRUE, has_raised_funds = TRUE)
 
-# Construct the API query (example: candidate data)
+# Construct and execute the API query (example: candidate data)
 fundraising <- (request(base_url) |>
   req_url_query(!!!params, api_key = keyring::key_get("fec_api_key")) |>
   req_perform() |>
   resp_body_json(resp = _))$results |>
   tibble(data = _) |>
   unnest_wider(data)
+
+#generate a list of candidate ids 
+list_candidates <- fundraising |> 
+  select(candidate_id) |> 
+  pull(candidate_id) |> 
+  as.character() |> 
+
 ```
+
+Once we know the state's candidates, let's get the information on where they raised money 
+/?page=1&per_page=20&candidate_id=S6NC00340&cycle=2026&election_full=true&sort=state&sort_hide_null=false&sort_null_only=false&sort_nulls_last=false&api_key=DEMO_KEY
+
+write a function that iterates through each candidate on the list and then puts that information into a new dataframe that has a column identifying which candidate it corresponds to
+
+```{r}
+# Set the base URL for the FEC API
+
+
+base_url_for_candidate_fundraising <- "https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate"
+params_candidate_fundraising <- list(per_page = 100, candidate_id = paste(list_candidates, collapse = ","), election_full = TRUE, sort = "state")
+
+# Construct and execute the API query (example: candidate data)
+state_locations <- (request(base_url_for_candidate_fundraising) |>
+  req_url_query(!!!params_candidate_fundraising, api_key = keyring::key_get("fec_api_key")) |>
+  req_perform() |>
+  resp_body_json(resp = _))$results |>
+  tibble(data = _) |>
+  unnest_wider(data)
+
+
+```
+
+
 
 5.  State a question of interest.
 
