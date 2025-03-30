@@ -6,6 +6,9 @@ embed-resources: true
 format: html
 ---
 
+
+
+
 Pick a website of your choice (not discussed in class) that requires a free API key and has recent data. You may use an R package for the website or use {httr2} to interact directly with the API.
 
 I chose https://api.open.fec.gov/developers/
@@ -58,7 +61,7 @@ list_candidates <- fundraising |>
 Once we know the state's candidates, let's get the information on where they raised money
 /?page=1&per_page=20&candidate_id=S6NC00340&cycle=2026&election_full=true&sort=state&sort_hide_null=false&sort_null_only=false&sort_nulls_last=false&api_key=DEMO_KEY
 
-write a function that iterates through each candidate on the list and then puts that information into a new dataframe that has a column identifying which candidate it corresponds to
+to-do - write a function that iterates through each candidate on the list and then puts that information into a new dataframe that has a column identifying which candidate it corresponds to
 
 ```{r}
 # Set the base URL for the FEC API
