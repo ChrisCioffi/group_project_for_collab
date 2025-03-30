@@ -8,10 +8,7 @@ format: html
 
 
 
-
-Pick a website of your choice (not discussed in class) that requires a free API key and has recent data. You may use an R package for the website or use {httr2} to interact directly with the API.
-
-I chose https://api.open.fec.gov/developers/
+This is mostly just something Chris cioffi used to try and conceptualize functions before he brought them into the shiny app 
 
 
 
@@ -36,39 +33,101 @@ library(tidyusafec)
 4.  Convert elements of interest into a tibble
 
 First let's find the name of the person running for office in a given state
-
+USed this for my personal understanding on how the query worked so I could get the function correctly put together
 ```{r}
+
+
 # Set the base URL for the FEC API
 base_url_for_candidate_name  <- "https://api.open.fec.gov/v1/candidates/totals/"
 params <- list(election_year = "2026", state = "NC", per_page = 100, office = "S", election_full = TRUE, is_active_candidate = TRUE, has_raised_funds = TRUE)
 
 # Construct and execute the API query (example: candidate data)
-fundraising <- (request(base_url) |>
+fundraising <- (request(base_url_for_candidate_name) |>
   req_url_query(!!!params, api_key = keyring::key_get("fec_api_key")) |>
   req_perform() |>
   resp_body_json(resp = _))$results |>
   tibble(data = _) |>
   unnest_wider(data)
 
+
 #generate a list of candidate ids 
 list_candidates <- fundraising |> 
   select(candidate_id) |> 
-  pull(candidate_id) |> 
-  as.character() |> 
+  pull(candidate_id) 
+
 
 ```
+
+
+```{r}
+fetch_candidate_ids <- function(state_abbreviations) {
+  # Set the base URL for the FEC API
+  base_url_for_candidate_name <- "https://api.open.fec.gov/v1/candidates/totals/"
+  
+  # Initialize an empty list to store results
+  committee_id_data <- list()
+  
+  # Iterate through each state in the list of state abbreviations
+  for (each_state in state_abbreviations) { # CORRECT: Changed state_abbreviations to each_state for iteration
+    # Define query parameters for the current state
+    params_states_in_question <- list(
+      election_year = 2026,
+      state = each_state, # CORRECT: Changed state_abbreviations to each_state to pass the current state abbreviation
+      per_page = 100,
+      office = "S", # Senate candidates
+      election_full = TRUE,
+      is_active_candidate = TRUE,
+      has_raised_funds = TRUE,
+      api_key = keyring::key_get("fec_api_key") # CORRECT: Added api_key parameter for authenticated access
+    )
+    
+    # Try to fetch data for the current state
+    tryCatch({
+      fundraising <- (request(base_url_for_candidate_name) |>
+        req_url_query(!!!params_states_in_question) |>
+        req_perform() |>
+  resp_body_json(resp = _))$results |>
+  tibble(data = _) |>
+  unnest_wider(data)
+      
+      # Append to the results list using the state abbreviation as a key
+      committee_id_data[[each_state]] <- fundraising # CORRECT: Changed key from state_abbreviations to each_state
+    }, error = function(e) {
+      message(paste("Error fetching data for state:", each_state)) # CORRECT: Fixed missing closing parenthesis in message()
+    })
+  }
+  
+  # Combine all data into a single dataframe
+  candidates_per_state <- bind_rows(committee_id_data, .id = "state") # CORRECT: Added `.id = "state"` to identify source states
+  
+  # Generate a list of candidate IDs
+  list_candidates <- candidates_per_state |> rename(
+    `Total receipts` = receipts,
+    `Other political committee contribs.` = other_political_committee_contributions,
+    `Contributions over $200` = individual_itemized_contributions
+  ) |>
+  select(name, candidate_id, `Total receipts`, `Other political committee contribs.`, `Contributions over $200`)
+  
+  return(list_candidates)
+}
+
+      
+list_candidates <- fetch_candidate_ids(c("NC", "TN"))
+
+```
+
+
 
 Once we know the state's candidates, let's get the information on where they raised money
 /?page=1&per_page=20&candidate_id=S6NC00340&cycle=2026&election_full=true&sort=state&sort_hide_null=false&sort_null_only=false&sort_nulls_last=false&api_key=DEMO_KEY
 
 to-do - write a function that iterates through each candidate on the list and then puts that information into a new dataframe that has a column identifying which candidate it corresponds to
+USed this for my personal understanding on how the query worked so I could get the function correctly put together
 
 ```{r}
-# Set the base URL for the FEC API
 
-
-base_url_for_candidate_fundraising <- "https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate"
-params_candidate_fundraising <- list(per_page = 100, candidate_id = paste(list_candidates, collapse = ","), election_full = TRUE, sort = "state")
+base_url_for_candidate_fundraising <- "https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate/"
+params_candidate_fundraising <- list(per_page = 100, candidate_id = list_candidates, cycle=2026, election_full = TRUE, sort = "state")
 
 # Construct and execute the API query (example: candidate data)
 state_locations <- (request(base_url_for_candidate_fundraising) |>
@@ -78,8 +137,70 @@ state_locations <- (request(base_url_for_candidate_fundraising) |>
   tibble(data = _) |>
   unnest_wider(data)
 
+```
+
+Function taking the candidate ids of each candidate and getting the fundraising information from each state
+
+
+```{r}
+#needed to turn to generative AI to help understand how to iterate through list_candidates and bind those queries into a single dataframe after developing the initial query for individual candidates
+fetch_candidate_fundraising <- function(list_candidates) {
+  # Set the base URL for the FEC API
+  base_url_for_candidate_fundraising <- "https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate/"
+  
+  # Initialize an empty list to store results
+  all_data <- list()
+  
+  # Iterate through each candidate ID in the dataframe
+  for (candidate_id in list_candidates$candidate_id) { # Use the candidate_id column from list_candidates
+    # Define query parameters for the current candidate
+    params_candidate_fundraising <- list(
+      per_page = 100,
+      candidate_id = candidate_id,
+      cycle = 2026,
+      election_full = TRUE,
+      sort = "state",
+      api_key = keyring::key_get("fec_api_key") # Securely retrieve API key
+    )
+    
+    # Try to fetch data for the current candidate
+    tryCatch({
+      state_locations <- (request(base_url_for_candidate_fundraising) |>
+        req_url_query(!!!params_candidate_fundraising) |>
+        req_perform() |>
+  resp_body_json(resp = _))$results |>
+  tibble(data = _) |>
+  unnest_wider(data)
+
+      
+      # Add a column identifying the candidate
+      state_locations$candidate_id <- candidate_id
+      
+      # Append to the results list
+      all_data[[candidate_id]] <- state_locations
+    }, error = function(e) {
+      message(paste("Error fetching data for candidate:", candidate_id))
+    })
+  }
+  
+  # Combine all data into a single dataframe
+  final_data <- bind_rows(all_data) 
+  
+  #make sure the candidate name, party, etc is associated with each line 
+  final_data <- final_data |> 
+    left_join(list_candidates, by = "candidate_id")
+  
+  return(final_data)
+}
+
+# Example usage
+state_locations <- fetch_candidate_fundraising(list_candidates)
+
+# View the result
+print(state_locations)
 
 ```
+
 
 
 
@@ -154,8 +275,7 @@ req <- request(base_url) |>
   req_throttle(rate = 30 / 60)
 
 # Use req_perform_iterative with built-in pagination
-responses <- req_perform_iterative(req, 
-                                   iterate_with_offset("page_index"))
+responses <- req_perform_iterative(req, iterate_with_offset("page_index"))
 
 # Extract JSON and combine into one tibble
 fec_data <- responses |>
