@@ -32,7 +32,7 @@ Lack of interactive tools for voter use at state level (esp. Senate races).
 
 Actors:
 
--   Primary user: U.S. voters
+-   Primary user: U.S. voters hoping to get a better understanding of whether their candidate is raising money from their own neighbors and constituents, or if it's donors from out of state seeking to influence an election
 
 -   Secondary users: Journalists, campaign transparency watchdogs
 
@@ -46,13 +46,21 @@ How does donor concentration vary by party, geography, and time?
 
 ## Fixed or Dynamic Data
 
--   Dynamic --- pulled via FEC API based on user input (e.g., race, state, year)
+-   Dynamic -- pulled via FEC API based on user input (e.g., race, state, year)
 
 ## App Concept
 
+Create radio buttons for each state that has a senate election in 2026
+
+Depending on which button is pushed, create a function that queries the api for the candidates in that state, aggregates all contributions by state, adn then creates a map of those contributions for each candidate
+
+Also creates a bar chart showing intemized and unitemized contributions along with total raised.
+
+Create a statistical test and summary of average contribution - and the states that had the most donations - that compares the amount a candidate raised from their home state versus contributions raised out of state.
+
 General Layout:
 
--   Sidebar panel: user input (year, candidate, state, party)
+-   Sidebar panel: user input ( state )
 
 -   Main panel: output visualizations (map, bar chart, summary stats)
 
