@@ -1,11 +1,12 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    https://shiny.posit.co/
-#
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+Here's all the code needed to run the app so far - you can hit the play button to simulate a shiny environment - this can be where you start taking the names of states and turn it into maps
+
+```{r}
 library(shiny)
 library(tidyverse)
 library(keyring)
@@ -25,10 +26,10 @@ library(DT)
 fetch_candidate_ids <- function(state_abbreviations) {
   # Set the base URL for the FEC API
   base_url_for_candidate_name <- "https://api.open.fec.gov/v1/candidates/totals/"
-  
+
   # Initialize an empty list to store results
   committee_id_data <- list()
-  
+
   # Iterate through each state in the list of state abbreviations
   for (each_state in state_abbreviations) { # Define query parameters for the current state
     params_states_in_question <- list(
@@ -40,17 +41,17 @@ fetch_candidate_ids <- function(state_abbreviations) {
       is_active_candidate = TRUE,
       api_key = keyring::key_get("fec_api_key")
     )
-    
+
     # Try to fetch data for the current state
     tryCatch(
       {
         fundraising <- (request(base_url_for_candidate_name) |>
-                          req_url_query(!!!params_states_in_question) |>
-                          req_perform() |>
-                          resp_body_json(resp = _))$results |>
+          req_url_query(!!!params_states_in_question) |>
+          req_perform() |>
+          resp_body_json(resp = _))$results |>
           tibble(data = _) |>
           unnest_wider(data)
-        
+
         # Append to the results list using the state abbreviation as a key
         committee_id_data[[each_state]] <- fundraising
       },
@@ -59,14 +60,14 @@ fetch_candidate_ids <- function(state_abbreviations) {
       }
     )
   }
-  
+
   # Combine all data into a single dataframe
   candidates_per_state <- bind_rows(committee_id_data, .id = "state")
-  
+
   # Generate a list of candidate IDs
   list_candidates <- candidates_per_state |>
     select(name, candidate_id, receipts, other_political_committee_contributions, individual_itemized_contributions, party)
-  
+
   return(list_candidates) ## Corrected: Moved this line to ensure saving and loading happens first
 }
 
@@ -83,10 +84,10 @@ fetch_candidate_ids <- function(state_abbreviations) {
 fetch_candidate_fundraising <- function(list_candidates) {
   # Set the base URL for the FEC API
   base_url_for_candidate_fundraising <- "https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate/"
-  
+
   # Initialize an empty list to store results
   all_data <- list()
-  
+
   # Iterate through each candidate ID in the dataframe
   for (candidate_id in list_candidates$candidate_id) { # Use the candidate_id column from list_candidates
     # Define query parameters for the current candidate
@@ -98,21 +99,21 @@ fetch_candidate_fundraising <- function(list_candidates) {
       sort = "state",
       api_key = keyring::key_get("fec_api_key") # Securely retrieve API key
     )
-    
+
     # Try to fetch data for the current candidate
     tryCatch(
       {
         state_locations <- (request(base_url_for_candidate_fundraising) |>
-                              req_url_query(!!!params_candidate_fundraising) |>
-                              req_perform() |>
-                              resp_body_json(resp = _))$results |>
+          req_url_query(!!!params_candidate_fundraising) |>
+          req_perform() |>
+          resp_body_json(resp = _))$results |>
           tibble(data = _) |>
           unnest_wider(data)
-        
-        
+
+
         # Add a column identifying the candidate
         state_locations$candidate_id <- candidate_id
-        
+
         # Append to the results list
         all_data[[candidate_id]] <- state_locations
       },
@@ -121,15 +122,15 @@ fetch_candidate_fundraising <- function(list_candidates) {
       }
     )
   }
-  
+
   # Combine all data into a single dataframe
   final_data <- bind_rows(all_data)
-  
+
   # make sure the candidate name, party, etc is associated with each line
   final_data <- list_candidates |>
     select(name, candidate_id) |>
     right_join(final_data, by = "candidate_id")
-  
+
   return(final_data)
 }
 
@@ -212,19 +213,19 @@ server <- function(input, output, session) {
   output$text_test <- renderText({
     paste("Selected states:", paste(input$state_select, collapse = ", "))
   })
-  
+
   # utilized generative ai to get this to function properly. I was trying to pass the rendered text incorrectly.
   # this reactive function updates the dataframe that is rendered at  output$candidate_id_table. It provides the candidate ids needed for the second function to work properly
   list_candidates <- reactive({
     req(input$state_select) # Ensure input is available
     fetch_candidate_ids(input$state_select) # Pass selected states directly
   })
-  
+
   # this function renders the candidate IDs table using reactive data from list_candidates which is directly above
   output$candidate_id_table <- renderDT({
     list_candidates()
   })
-  
+
   # this function renders the table of by-state fundraising data that is provided by the Senate api
   output$candidate_fundraising_table <- renderDT({
     fetch_candidate_fundraising(list_candidates())
@@ -233,3 +234,4 @@ server <- function(input, output, session) {
 ########## END SHINY SERVER SECTION  ############
 
 shinyApp(ui, server)
+```
