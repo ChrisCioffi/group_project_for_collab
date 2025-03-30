@@ -47,3 +47,13 @@ The vignette shall contain a code chunk (with language engine `block` instead of
 
 
 ```
+
+## **2.9 Create a README File for Your Repo**
+
+-   Summarize the title and purpose of the App.
+
+-   Identify the group members by name and GitHub ID.
+
+-   If your repo requires acquiring or using API keys, include a link to the instructions for obtaining such keys.
+
+-   Describe the license for the app. Consider [Creative Commons](https://quarto.org/docs/authoring/front-matter.html#cc).

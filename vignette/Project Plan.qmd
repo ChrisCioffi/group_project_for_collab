@@ -1,0 +1,145 @@
+---
+title: "Project Plan: Political Donor Insight App"
+format: html
+editor: visual
+---
+
+## 1 Admin
+
+App Title: Political Donor Insights
+
+Group Members: Mimi Beckemeier, Chris Cioffi, Emily Eames, Youssouf Barry
+
+## Topic and Data
+
+Political donations influence elections, but voters lack transparency into where funds originate. Our Shiny app will visualize geographic trends in political donations for U.S. Senate races.
+
+Proposed Data Sources:
+
+-   FEC API (https://api.open.fec.gov/developers/)
+
+-   U.S. Census (for district/state mapping support if needed)
+
+## Status of Literature Review:
+
+Preliminary review complete.
+
+Studies show donor geography can affect candidate priorities and election outcomes.
+
+Lack of interactive tools for voter use at state level (esp. Senate races).
+
+## Use Case
+
+Actors:
+
+-   Primary user: U.S. voters
+
+-   Secondary users: Journalists, campaign transparency watchdogs
+
+## Questions of Interest
+
+Where are Senate candidates receiving donations from?
+
+Are donations coming from within or outside the candidate's state?
+
+How does donor concentration vary by party, geography, and time?
+
+## Fixed or Dynamic Data
+
+-   Dynamic --- pulled via FEC API based on user input (e.g., race, state, year)
+
+## App Concept
+
+General Layout:
+
+-   Sidebar panel: user input (year, candidate, state, party)
+
+-   Main panel: output visualizations (map, bar chart, summary stats)
+
+User Data Manipulation Options:
+
+-   Filter by year, state, candidate, and party
+
+-   View donations by zip code, donor name (if public), or amount brackets
+
+Numerical/Graphical Analysis Options:
+
+-   Map showing donor density by ZIP or state
+
+-   Bar plot of donation totals by location or party
+
+-   Summary statistics of average donation size
+
+Proposed App Theme:
+
+-   Clean, professional theme using \`{bslib}\` or \`{shinythemes}\` or potential patriotic theme
+
+Statistical Models/Tests:
+
+-   Potential linear model: in-state vs out-of-state donation impact
+
+-   Summary regression to show donor concentration vs vote share (optional advanced feature)
+
+Advanced Features:
+
+-   Time slider to show change in donations over the election cycle
+
+-   Downloadable .csv summary of donation records per user filter
+
+## Ethical Review
+
+Ethics Discussion:
+
+-   All FEC data is public, but care will be taken not to misuse personal data
+
+-   No amplification of individual donor names unnecessarily
+
+-   App will include a disclaimer about data sources and use
+
+## Responsibilities
+
+-   Chris: API integration and data wrangling
+
+-   Mimi: Mapping and plotting logic
+
+-   Emily: UI design and interactivity
+
+-   Youssouf: Ethical review, documentation, and testing
+
+## Collaboration
+
+GitHub branching strategy:
+
+-   Main branch + individual feature branches
+
+-   Shared Quarto documentation for reproducibility
+
+**Still trying to figure out GitHub repo situation for the project, have emailed Prof**
+
+\## Plan.9 Schedule
+
+-   Week 1: Data exploration, API test pulls, set up repo
+
+-   Week 2: App layout, mapping prototype
+
+-   Week 3: Filter functionality, plotting logic
+
+-   Week 4: Final features, polishing, ethical review
+
+-   Week 5: Writeup, vignette, documentation
+
+## Overall
+
+Formatting:
+
+-   Follows R Markdown + Quarto structure
+
+-   All code chunks named and annotated
+
+Citations:
+
+-   FEC API documentation, related political science papers
+
+Spelling and Grammar:
+
+-   Final check using spellchecker + peer review
