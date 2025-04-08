@@ -1,0 +1,279 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+Here's all the code needed to run the app so far - you can hit the play button to simulate a shiny environment - this can be where you start taking the names of states and turn it into maps
+
+```{r}
+library(shiny)
+library(tidyverse)
+library(keyring)
+library(httr2)
+library(jsonlite)
+library(plotly)
+library(DT)
+
+#ONE THING YOU HAVE TO DO TO MAKE THIS RUN - get an FEC api key and save it by un-noting this out and adding it 
+#you can sign up for a key here - https://api.open.fec.gov/developers/ 
+key_set("fec_api_key")
+
+################## FUNCTION 1 ################
+
+# fetch_candidate_ids - finds the person (or people) running for Senate in a given state and returns a dataframe with information about their candidacy, like party, state, and total raised from small donors (under \$200) and itemized donors (more than \$200). this is important because only the itemized information is included in the state-level data, so we can create a separate graph that shows the discrepancy between the itemized and unitemized
+
+fetch_candidate_ids <- function(state_abbreviations) {
+  # Set the base URL for the FEC API
+  base_url_for_candidate_name <- "https://api.open.fec.gov/v1/candidates/totals/"
+
+  # Initialize an empty list to store results
+  committee_id_data <- list()
+
+  # Iterate through each state in the list of state abbreviations
+  for (each_state in state_abbreviations) { # Define query parameters for the current state
+    params_states_in_question <- list(
+      election_year = 2026,
+      state = each_state,
+      per_page = 100,
+      office = "S", # Senate candidates
+      election_full = TRUE,
+      is_active_candidate = TRUE,
+      api_key = keyring::key_get("fec_api_key")
+    )
+
+    # Try to fetch data for the current state
+    tryCatch(
+      {
+        fundraising <- (request(base_url_for_candidate_name) |>
+          req_url_query(!!!params_states_in_question) |>
+          req_perform() |>
+          resp_body_json(resp = _))$results |>
+          tibble(data = _) |>
+          unnest_wider(data)
+
+        # Append to the results list using the state abbreviation as a key
+        committee_id_data[[each_state]] <- fundraising
+      },
+      error = function(e) {
+        message(paste("Error fetching data for state:", each_state))
+      }
+    )
+  }
+
+  # Combine all data into a single dataframe
+  candidates_per_state <- bind_rows(committee_id_data, .id = "state")
+
+  # Generate a list of candidate IDs
+  list_candidates <- candidates_per_state |>
+    select(name, candidate_id, receipts, other_political_committee_contributions, individual_itemized_contributions, party)
+
+  return(list_candidates) ## Corrected: Moved this line to ensure saving and loading happens first
+}
+
+
+########## END OF FUNCTION ############
+
+
+################## FUNCTION 2 ################
+#- fetch_candidate_fundraising -  This function takes the selected candidates, and uses it to query the API to return a dataframe with the information related to which states candidates raised money from
+
+
+# NOTE - needed to turn to generative AI(perplexity.ai provided to AU students) to help understand how to iterate through list_candidates and bind those queries into a single dataframe after developing the initial query for individual candidates
+
+fetch_candidate_fundraising <- function(list_candidates) {
+  # Set the base URL for the FEC API
+  base_url_for_candidate_fundraising <- "https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate/"
+  # Initialize an empty list to store results
+  all_data <- list()
+  # Iterate through each candidate ID in the dataframe
+  for (candidate_id in list_candidates$candidate_id) { # Use the candidate_id column from list_candidates
+    # Define query parameters for the current candidate
+    params_candidate_fundraising <- list(
+      per_page = 100,
+      candidate_id = candidate_id,
+      cycle = 2026,
+      election_full = TRUE,
+      sort = "state",
+      api_key = keyring::key_get("fec_api_key") # Securely retrieve API key
+    )
+    # Try to fetch data for the current candidate
+    tryCatch(
+      {
+        state_locations <- (request(base_url_for_candidate_fundraising) |>
+          req_url_query(!!!params_candidate_fundraising) |>
+          req_perform() |>
+          resp_body_json(resp = _))$results |>
+          tibble(data = _) |>
+          unnest_wider(data)
+        # Add a column identifying the candidate
+        state_locations$candidate_id <- candidate_id
+        # Append to the results list
+        all_data[[candidate_id]] <- state_locations
+      },
+      error = function(e) {
+        message(paste("Error fetching data for candidate:", candidate_id))
+      }
+    )
+  }
+  # Combine all data into a single dataframe
+  final_data <- bind_rows(all_data)
+  # make sure the candidate name, party, etc is associated with each line
+  final_data <- list_candidates |>
+    select(name, candidate_id) |>
+    right_join(final_data, by = "candidate_id")
+  return(final_data)
+}
+
+########## END OF FUNCTION ############
+
+
+########## LIST OF STATE ABBREVIATIONS  ############
+
+# state_abbreviations - Creates the list of state names for use in the query - this can eventually likely get migrated to a separate file to improve readability, but for now it's going to be here.
+state_abbreviations <- c(
+  "Alabama" = "AL",
+  "Alaska" = "AK",
+  "Arkansas" = "AR",
+  "Colorado" = "CO",
+  "Delaware" = "DE",
+  "Georgia" = "GA",
+  "Idaho" = "ID",
+  "Illinois" = "IL",
+  "Iowa" = "IA",
+  "Kansas" = "KS",
+  "Kentucky" = "KY",
+  "Louisiana" = "LA",
+  "Maine" = "ME",
+  "Massachusetts" = "MA",
+  "Michigan" = "MI",
+  "Minnesota" = "MN",
+  "Mississippi" = "MS",
+  "Montana" = "MT",
+  "Nebraska" = "NE",
+  "New Hampshire" = "NH",
+  "New Jersey" = "NJ",
+  "New Mexico" = "NM",
+  "North Carolina" = "NC",
+  "Oklahoma" = "OK",
+  "Oregon" = "OR",
+  "Rhode Island" = "RI",
+  "South Carolina" = "SC",
+  "South Dakota" = "SD",
+  "Tennessee" = "TN",
+  "Texas" = "TX",
+  "Virginia" = "VA",
+  "West Virginia" = "WV",
+  "Wyoming" = "WY"
+)
+
+########## END OF LIST  ############
+
+
+########## BEGIN SHINY UI  ############
+
+ui <- fluidPage(
+  theme = bslib::bs_theme(bootswatch = "flatly", primary = "#0055A4", base_font = "Georgia"),
+  titlePanel("2026 Senate Race Donations")
+)
+
+  # this is the checkbox users can click and then select what state they want to look at
+  sidebarLayout(
+    sidebarPanel(
+      checkboxGroupInput(
+        inputId = "state_select",
+        label = "Choose State(s):",
+        choices = state_abbreviations,
+        selected = "AL"
+      )
+    ),
+    mainPanel(
+      textOutput("text_test"),
+      # this is the table that should be where the data flows to
+      tabsetPanel(
+        tabPanel("Candidate Summary", DTOutput("candidate_id_table")),
+        tabPanel("Fundraising Summary", DTOutput("candidate_fundraising_table")),
+        tabPanel("Bar Plot", plotlyOutput("fundraising_barplot", height = "400px")),
+        tabPanel("Donation Map", plotlyOutput("fundraising_map", height = "500px"))
+      
+    )
+  )
+)
+
+
+
+########## END SHINY UI  ############
+
+########## BEGIN SHINY SERVER SECTION  ############
+
+# I had trouble getting this to work initially and turned to generative AI. I had not put it in reactive expressions, which meant the list_candidates was not being correctly created and loaded
+
+server <- function(input, output, session) {
+  # Display selected states as text (for debugging or user feedback)
+  output$text_test <- renderText({
+    paste("Selected states:", paste(input$state_select, collapse = ", "))
+  })
+
+  # utilized generative ai to get this to function properly. I was trying to pass the rendered text incorrectly.
+  # this reactive function updates the dataframe that is rendered at  output$candidate_id_table. It provides the candidate ids needed for the second function to work properly
+  list_candidates <- reactive({
+    req(input$state_select) # Ensure input is available
+    fetch_candidate_ids(input$state_select) # Pass selected states directly
+  })
+
+  # this function renders the candidate IDs table using reactive data from list_candidates which is directly above
+  output$candidate_id_table <- renderDT({
+    list_candidates()
+  })
+
+  candidate_fundraising_df <- reactive({
+    req(list_candidates())
+    fetch_candidate_fundraising(list_candidates())
+  })
+  # this function renders the table of by-state fundraising data that is provided by the Senate api
+  output$candidate_fundraising_table <- renderDT({
+    fetch_candidate_fundraising(list_candidates())
+  })
+
+ output$fundraising_barplot <- renderPlotly({
+  df <- candidate_fundraising_df()
+  req(nrow(df) > 0)
+
+  df_summary <- df |> 
+    group_by(state_full) |> 
+    summarise(total = sum(total, na.rm = TRUE)) |> 
+    arrange(desc(total))
+
+  plot_ly(df_summary, x = ~reorder(state_full, total), y = ~total, type = "bar") |>
+    layout(title = "Total Donations by State")
+})
+ 
+ output$fundraising_map <- renderPlotly({
+  df <- candidate_fundraising_df()
+  req(nrow(df) > 0)
+
+  df_map <- df |>
+    group_by(state) |>
+    summarise(total = sum(total, na.rm = TRUE))
+
+  plot_geo(df_map, locationmode = 'USA-states') |>
+    add_trace(
+      z = ~total,
+      locations = ~state,
+      color = ~total,
+      colors = 'Blues',
+      text = ~paste(state, "<br>$", round(total, 2)),
+      hoverinfo = "text"
+    ) |>
+    layout(
+      geo = list(scope = 'usa'),
+      title = "Donation Origins by State"
+    )
+})
+
+}
+
+########## END SHINY SERVER SECTION  ############
+
+shinyApp(ui, server)
+```
