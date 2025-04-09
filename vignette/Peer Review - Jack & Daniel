@@ -1,0 +1,26 @@
+Chris Cioffi & Emily Eames
+
+Peer review for Jack P and Daniel T’s property analysis using home values data accessed from Zillow. 
+
+Does the user/actor workflow address the questions of interest in a reasonable and easy to follow manner?
+
+
+Jack and Daniel describe how they are seeking to help homebuyers looking for something affordable or have a cap on how much they want to spend find the right place to buy a home.
+The hope is to provide individual homeowners with a better idea on where to look for those houses when it comes to comparing housing locations. They also believe it could be a good tool for real estate investors to help them identify trends in home values to start putting money into those areas.
+What they lay out –to aim an app at those users -- makes sense. There’s a need for homebuyers and investors to find sources of data allowing them to easily compare markets. 
+Their targeted datapoints like looking at mortgage and monthly payment should be helpful for these kinds of buyers. 
+I think, as they point out, perhaps some kind of calculator functionality that would allow them to decide how much they pay based on how much money they put down would be useful. 
+
+Does the overall layout support the expected user/actor flow and provide useful results.
+
+Jack and Daniel expressed interest in creating a dual comparison tool where they’d have two-line plots with searchable dropdowns for that plot. 
+That way, if a homeowner or investor is deciding between Baltimore and DC, they can select those two markets and will be able to directly compare them. 
+They also discussed potentially comparing a state or region in their line plots by doing some math for an entire state.
+This feels like a good start. Their ideas feel like an intuitive way to display this data and give users an easy way to compare cities, however a simple line plot might not provide the full breadth of the data they want to show?  But it makes sense to have a simple line plot to maybe look at mortgage prices over a certain time frame for two different states or cities. Something straightforward and easy for the user to understand. 
+
+Are there features that would improve the ability of the user/actor to answer their questions using the app?
+
+Jack and Daniel may want to consider potentially adding functionality to compare more than two cities or, if they’re comparing two states, their graphs might have functionality that gives the same data for the cities in those states. 
+They may also want to get creative to see if there is other data they could bring in that homeowners commonly want to know, like perhaps, they can give the average weather temperature, or the population sizes for different cities? 
+For investors, maybe they could create some data points for the city’s economic facts or crime rates. They could also compare the city to other cities to see if it’s a high- or low-cost city. 
+
