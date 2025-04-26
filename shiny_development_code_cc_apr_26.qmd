@@ -15,9 +15,9 @@ library(jsonlite)
 library(plotly)
 library(DT)
 
-#ONE THING YOU HAVE TO DO TO MAKE THIS RUN - get an FEC api key and save it by un-noting this out and adding it 
-#you can sign up for a key here - https://api.open.fec.gov/developers/ 
-#key_set("fec_api_key")
+# ONE THING YOU HAVE TO DO TO MAKE THIS RUN - get an FEC api key and save it by un-noting this out and adding it
+# you can sign up for a key here - https://api.open.fec.gov/developers/
+# key_set("fec_api_key")
 
 ################## FUNCTION 1 ################
 
@@ -171,7 +171,6 @@ state_abbreviations <- c(
 ui <- fluidPage(
   theme = bslib::bs_theme(bootswatch = "flatly", primary = "#0055A4", base_font = "Georgia"),
   titlePanel("2026 Senate Race Donations"),
-  
   sidebarLayout(
     sidebarPanel(
       checkboxGroupInput(
@@ -182,13 +181,15 @@ ui <- fluidPage(
       )
     ),
     mainPanel(
-      textOutput("text_test"),
+
+      #     textOutput("text_test"),
       tabsetPanel(
-#        tabPanel("testing", DTOutput("testingtable")), #for testing
-        tabPanel("Candidate Summary", DTOutput("candidate_id_table")),
-        tabPanel("Fundraising Summary", DTOutput("candidate_fundraising_table")),
-        tabPanel("Bar Plot", plotlyOutput("itemized_plot", height = "400px")),
-        tabPanel("Donation Map", plotlyOutput("fundraising_map", height = "500px"))
+          #        tabPanel("testing", DTOutput("testingtable")), #for testing
+          tabPanel("Candidate Summary",  br(),DTOutput("candidate_id_table")),
+          tabPanel("Fundraising Summary", br(), DTOutput("candidate_fundraising_table")),
+          tabPanel("Bar Plot",  br(), plotlyOutput("itemized_plot", height = "100%")),
+          tabPanel("Donation Map",  br(),plotlyOutput("fundraising_map", height = "100%"))
+        
       )
     )
   )
@@ -200,113 +201,122 @@ ui <- fluidPage(
 ########## BEGIN SHINY SERVER SECTION  ############
 
 server <- function(input, output, session) {
-  
   output$text_test <- renderText({
     paste("Selected states:", paste(input$state_select, collapse = ", "))
   })
-  
+
   list_candidates <- reactive({
     req(input$state_select)
     fetch_candidate_ids(input$state_select)
   })
-  
+
   output$candidate_id_table <- renderDT({
     req(list_candidates())
     datatable(list_candidates())
   })
-  
+
   candidate_fundraising_df <- reactive({
     req(list_candidates())
     fetch_candidate_fundraising(list_candidates())
   })
-  
+
   output$candidate_fundraising_table <- renderDT({
     req(candidate_fundraising_df())
     datatable(candidate_fundraising_df())
   })
 
-  ######for testing 
-    
+  ###### for testing
+
   # output$testingtable <- renderDT({
   #      df <- list_candidates()
   # df |>
-  #   mutate(receipts = (receipts - (individual_itemized_contributions+other_political_committee_contributions))) |> 
+  #   mutate(receipts = (receipts - (individual_itemized_contributions+other_political_committee_contributions))) |>
   #     pivot_longer(cols = c(receipts, individual_itemized_contributions, other_political_committee_contributions),
   #                  names_to = "Type", values_to = "Amount") |>
   #     mutate(Type = recode(Type,
   #                          receipts = "Small-dollar donations, transfers, other donations",
   #                          individual_itemized_contributions = "Itemized",
-  #                          other_political_committee_contributions = "PACs")) 
-  #   
+  #                          other_political_committee_contributions = "PACs"))
+  #
   # })
-  ########for testing 
-  
-  # Plot itemized vs pacs 
+  ######## for testing
+
+  # Plot itemized vs pacs
   output$itemized_plot <- renderPlotly({
     df <- list_candidates()
     req(nrow(df) > 0)
-    
+
     df_long <- df |>
-      filter(receipts > 1) |> 
-       mutate(receipts = (receipts - (individual_itemized_contributions+other_political_committee_contributions))) |> 
-      pivot_longer(cols = c(receipts, individual_itemized_contributions, other_political_committee_contributions),
-                   names_to = "Type", values_to = "Amount") |>
-      mutate(Type = recode(Type,
-                           receipts = "Small-dollar donations, transfers, other donations",
-                           individual_itemized_contributions = "Donations over $200",
-                           other_political_committee_contributions = "PACs"),
-    name_party = paste0(name, " (", party, ")"))
-    
+      filter(receipts > 1) |>
+      mutate(receipts = (receipts - (individual_itemized_contributions + other_political_committee_contributions))) |>
+      pivot_longer(
+        cols = c(receipts, individual_itemized_contributions, other_political_committee_contributions),
+        names_to = "Type", values_to = "Amount"
+      ) |>
+      mutate(
+        Type = recode(Type,
+          receipts = "Small-dollar donations, transfers, other donations",
+          individual_itemized_contributions = "Donations over $200",
+          other_political_committee_contributions = "PACs"
+        ),
+        name_party = paste0(name, " (", party, ")")
+      )
+
     plot_ly(df_long, x = ~name_party, y = ~Amount, color = ~Type, type = "bar") |>
       layout(
-      title = "Contributions to candidates by type",
-      barmode = "stack",
-      yaxis = list(
-        title = "Amount",
-        tickprefix = "$",
-        tickformat = ",.0f"  # comma thousands, no decimals
-      ),
-    xaxis = list(
-      title = "Candidate (Party)"
-    )
-      
+        title = "Contributions to candidates by type",
+        barmode = "stack",
+        yaxis = list(
+          title = "Amount",
+          tickprefix = "$",
+          tickformat = ",.0f" # comma thousands, no decimals
+        ),
+        xaxis = list(
+          title = "Candidate (Party)"
+        ),
+        legend = list(
+          orientation = "h", # horizontal
+          xanchor = "center", # anchor legend to the center
+          x = 0.5, # center of the plot
+          y = -0.2 # below the plot
+        )
       )
   })
-  
+
   # Map
   output$fundraising_map <- renderPlotly({
     df <- candidate_fundraising_df()
     req(nrow(df) > 0)
-    
+
     df_map <- df |>
       group_by(state) |>
       summarise(total = sum(total, na.rm = TRUE))
-    
-    plot_geo(df_map, locationmode = 'USA-states') |>
+
+    plot_geo(df_map, locationmode = "USA-states") |>
       add_trace(
         z = ~total,
         locations = ~state,
         color = ~total,
         colors = "Blues",
-        text = ~paste(state, "<br>$", round(total, 2)),
+        text = ~ paste(state, "<br>$", round(total, 2)),
         hoverinfo = "text"
       ) |>
-      layout(geo = list(scope = 'usa'), title = "Donation Origins by State for All Candidates")
+      layout(geo = list(scope = "usa"), title = "Donation Origins by State for All Candidates")
   })
-  
+
   # Stats
   output$summary_stats <- renderPrint({
     df <- candidate_fundraising_df()
     req(nrow(df) > 0)
-    
+
     df <- df |> mutate(home_state = ifelse(state == substr(candidate_id, 1, 2), "in_state", "out_of_state"))
-    
-    avg_contribs <- df |> 
-      group_by(home_state) |> 
+
+    avg_contribs <- df |>
+      group_by(home_state) |>
       summarise(avg_total = mean(total, na.rm = TRUE), .groups = "drop")
-    
+
     t_test <- t.test(total ~ home_state, data = df)
-    
+
     print(avg_contribs)
     print(t_test)
   })
