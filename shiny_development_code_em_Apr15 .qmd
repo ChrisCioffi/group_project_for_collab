@@ -254,9 +254,10 @@ server <- function(input, output, session) {
       mutate(Type = recode(Type,
                            receipts = "Small-dollar donations, transfers, other donations",
                            individual_itemized_contributions = "Donations over $200",
-                           other_political_committee_contributions = "PACs"))
+                           other_political_committee_contributions = "PACs"),
+    name_party = paste0(name, " (", party, ")"))
     
-    plot_ly(df_long, x = ~name, y = ~Amount, color = ~Type, type = "bar") |>
+    plot_ly(df_long, x = ~name_party, y = ~Amount, color = ~Type, type = "bar") |>
       layout(
       title = "Contributions to candidates by type",
       barmode = "stack",
@@ -265,9 +266,9 @@ server <- function(input, output, session) {
         tickprefix = "$",
         tickformat = ",.0f"  # comma thousands, no decimals
       ),
-      xaxis = list(
-        title = ~paste(name, "(", party, ")")
-      )
+    xaxis = list(
+      title = "Candidate (Party)"
+    )
       
       )
   })
@@ -290,7 +291,7 @@ server <- function(input, output, session) {
         text = ~paste(state, "<br>$", round(total, 2)),
         hoverinfo = "text"
       ) |>
-      layout(geo = list(scope = 'usa'), title = "Donation Origins by State")
+      layout(geo = list(scope = 'usa'), title = "Donation Origins by State for All Candidates")
   })
   
   # Stats
