@@ -17,7 +17,7 @@ library(DT)
 
 #ONE THING YOU HAVE TO DO TO MAKE THIS RUN - get an FEC api key and save it by un-noting this out and adding it 
 #you can sign up for a key here - https://api.open.fec.gov/developers/ 
-key_set("fec_api_key")
+#key_set("fec_api_key")
 
 ################## FUNCTION 1 ################
 
@@ -184,9 +184,10 @@ ui <- fluidPage(
     mainPanel(
       textOutput("text_test"),
       tabsetPanel(
+#        tabPanel("testing", DTOutput("testingtable")), #for testing
         tabPanel("Candidate Summary", DTOutput("candidate_id_table")),
         tabPanel("Fundraising Summary", DTOutput("candidate_fundraising_table")),
-        tabPanel("Bar Plot", plotlyOutput("fundraising_barplot", height = "400px")),
+        tabPanel("Bar Plot", plotlyOutput("itemized_plot", height = "400px")),
         tabPanel("Donation Map", plotlyOutput("fundraising_map", height = "500px"))
       )
     )
@@ -223,21 +224,52 @@ server <- function(input, output, session) {
     req(candidate_fundraising_df())
     datatable(candidate_fundraising_df())
   })
+
+  ######for testing 
+    
+  # output$testingtable <- renderDT({
+  #      df <- list_candidates()
+  # df |>
+  #   mutate(receipts = (receipts - (individual_itemized_contributions+other_political_committee_contributions))) |> 
+  #     pivot_longer(cols = c(receipts, individual_itemized_contributions, other_political_committee_contributions),
+  #                  names_to = "Type", values_to = "Amount") |>
+  #     mutate(Type = recode(Type,
+  #                          receipts = "Small-dollar donations, transfers, other donations",
+  #                          individual_itemized_contributions = "Itemized",
+  #                          other_political_committee_contributions = "PACs")) 
+  #   
+  # })
+  ########for testing 
   
-  # Plot itemized vs unitemized
+  # Plot itemized vs pacs 
   output$itemized_plot <- renderPlotly({
     df <- list_candidates()
     req(nrow(df) > 0)
     
     df_long <- df |>
-      pivot_longer(cols = c(individual_itemized_contributions, individual_unitemized_contributions),
+      filter(receipts > 1) |> 
+       mutate(receipts = (receipts - (individual_itemized_contributions+other_political_committee_contributions))) |> 
+      pivot_longer(cols = c(receipts, individual_itemized_contributions, other_political_committee_contributions),
                    names_to = "Type", values_to = "Amount") |>
       mutate(Type = recode(Type,
-                           individual_itemized_contributions = "Itemized",
-                           individual_unitemized_contributions = "Unitemized"))
+                           receipts = "Small-dollar donations, transfers, other donations",
+                           individual_itemized_contributions = "Donations over $200",
+                           other_political_committee_contributions = "PACs"))
     
     plot_ly(df_long, x = ~name, y = ~Amount, color = ~Type, type = "bar") |>
-      layout(title = "Itemized vs Unitemized Contributions", barmode = "stack")
+      layout(
+      title = "Contributions to candidates by type",
+      barmode = "stack",
+      yaxis = list(
+        title = "Amount",
+        tickprefix = "$",
+        tickformat = ",.0f"  # comma thousands, no decimals
+      ),
+      xaxis = list(
+        title = ~paste(name, "(", party, ")")
+      )
+      
+      )
   })
   
   # Map
