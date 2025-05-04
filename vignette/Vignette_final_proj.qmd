@@ -185,5 +185,5 @@ minimum.
 
 ```{r}
 #| include: false
-#Chris Cioffi:  -Project Plan - reviewer, Peer Review - co-contributor, Shiny App -	primary-contributor, Vignette- primary contributor 
+#Chris Cioffi:  -Project Plan - reviewer, Peer Review - co-contributor, progress report - reviewer, Shiny App -	primary-contributor, Vignette- primary contributor 
 ```
