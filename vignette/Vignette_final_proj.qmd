@@ -1,59 +1,189 @@
 ---
-title: "Vignette_final_proj"
-format: html
+title: 'DATA-413/613 Final Project: Vignette'
+author: "Chris Cioffi, Emily Eames, Mimi Beckemeier, Thierno Youssouf Barry"
+number-sections: true
+code-line-numbers: true
+format:
+  html:
+    embed-resources: true
+editor: 
+  markdown: 
+    wrap: 72
 ---
 
-Next steps
+#Senate Race FEC Helper
 
-Find sources on Why average american care about where lawmakers raise money
+##Use Case
 
-As we find them post links and a few sentence summary of what the article says
+This app will be used by U.S. voters hoping to get a better
+understanding of whether their candidate is raising money from their own
+neighbors and constituents, or if it's donors from out of state seeking
+to influence an election. The app can also be used by journalists,
+campaign transparency watchdogs or people in foreign countries seeking
+to get an easy-to-understand readout of what's happening in Senate
+elections in 2026.
 
-#here's some website links we discussed\
-#this is the api documentation <https://api.open.fec.gov/developers/#/> #this is a map that shows presidential donations <https://www.fec.gov/data/candidates/president/presidential-map/> #this is an interactive method users can dig into to look at individual elections <https://www.fec.gov/data/elections/?state=&cycle=2026&election_full=true> #this shows aggregate donations for candidates <https://www.fec.gov/data/elections/senate/NC/2026/>
+##Required Packages
 
-## **2.4 Conduct a Review of the Literature**
+This app requires functionalities from the following packages: shiny
+tidyverse keyring httr2 jsonlite plotly DT
 
-Identify at least three references from either academic papers or widely-available authoritative sources that provide context for your topic.
+## Data Source and Structure
 
--   They should help you understand the extant work on the topic, possible questions, and indications about key variables or data sources.
+The Shiny app relies on two main functions to queries the FEC API in
+order to obtain donor information about Senate candidates running in
+states that have a Senate election in 2026. It gets user input on what
+states the user wants more information about a given candidate and then
+queries the https://api.open.fec.gov/v1/candidates/totals/ endpoint to
+get a list of all candidates in that state.
+
+It then takes that list of candidates and queries the
+https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate/
+endpoint to pull down the donor and candidate stats about the
+candidates.
+
+```{r}
+
+fetch_candidate_fundraising <- function(list_candidates) {
+  # Set the base URL for the FEC API
+  base_url_for_candidate_fundraising <- "https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate/"
+  # Initialize an empty list to store results
+  all_data <- list()
+  # Iterate through each candidate ID in the dataframe
+  for (candidate_id in list_candidates$candidate_id) { # Use the candidate_id column from list_candidates
+    # Define query parameters for the current candidate
+    params_candidate_fundraising <- list(
+      per_page = 100,
+      candidate_id = candidate_id,
+      cycle = 2026,
+      election_full = TRUE,
+      sort = "state",
+      api_key = keyring::key_get("fec_api_key") # Securely retrieve API key
+    )
+    # Try to fetch data for the current candidate
+    tryCatch(
+      {
+        state_locations <- (request(base_url_for_candidate_fundraising) |>
+                              req_url_query(!!!params_candidate_fundraising) |>
+                              req_perform() |>
+                              resp_body_json(resp = _))$results |>
+          tibble(data = _) |>
+          unnest_wider(data)
+        # Add a column identifying the candidate
+        state_locations$candidate_id <- candidate_id
+        # Append to the results list
+        all_data[[candidate_id]] <- state_locations
+      },
+      error = function(e) {
+        message(paste("Error fetching data for candidate:", candidate_id))
+      }
+    )
+  }
+  # Combine all data into a single dataframe
+  final_data <- bind_rows(all_data)
+  # make sure the candidate name, party, etc is associated with each line
+  final_data <- list_candidates |>
+    select(name, candidate_id) |>
+    right_join(final_data, by = "candidate_id")
+  return(final_data)
+}
+
+```
+
+## EDA Inputs, Controls, and Outputs
+
+Both queries return dataframes that include character and number columns
+with stats such as the candidate's name, id, their total receipts, the
+reciepts from pacs, from indificual donors and their party. The data is
+broken down by state and the size of the dataframe depends on how many
+states were selected, which then, in-turn changes the number of
+candidates.
+
+The users can select states that they want to examine and then will be
+provided the dataframes that are auto-generated based on their queries.
+
+![Example of the UI with states selected and the basic candidate stats
+auto-generated](images/Screenshot 2025-05-04 at 11.59.52 AM.png)
+
+![Deeper dive on candidate stats, giving where donors originate
+from](images/Screenshot 2025-05-04 at 12.01.21 PM.png)
+
+## Statistical Analysis Inputs, Controls, and Outputs
+
+Users, once they find the states they are interested in, have two ways
+to look at the data. They can look at the total funds raised and how
+much of that money came from pacs or large donors. And they can also
+see, on a map, exactly which states those donations came from.
+
+Future functionality will allow users to see the breakout of where the
+money came from for each candidate, but now the heatmap is showing where
+donors are seeking to influence the overall race from.
+
+To try and make the graphics most useful. The candidates that have
+raised no money are excluded. The dataframe is then recoded, and the
+pivot_longer function is used to make the data usable for graphing
+purposes.
+
+```{r}
+#| eval: false
+ df_long <- df |>
+      filter(receipts > 1) |> #remove 
+      mutate(receipts = (receipts - (individual_itemized_contributions + other_political_committee_contributions))) |>
+      pivot_longer(
+        cols = c(receipts, individual_itemized_contributions, other_political_committee_contributions),
+        names_to = "Type", values_to = "Amount"
+      ) |>
+      mutate(
+        Type = recode(Type,
+                      receipts = "Small-dollar donations, transfers, other donations",
+                      individual_itemized_contributions = "Donations over $200",
+                      other_political_committee_contributions = "PACs"
+        ),
+        name_party = paste0(name, " (", party, ")")
+      )
+ 
+```
+
+![Example of functionality showing what kinds of donors each candidate
+is raising money from.](images/Screenshot 2025-05-04 at 12.04.12 PM.png)
+
+![Example showing where donations from that state's race are coming
+from.](images/Screenshot 2025-05-04 at 12.05.26 PM.png)
+
+## References
+
+Identify at least three references from either academic papers or
+widely-available authoritative sources that provide context for your
+topic.
+
+-   They should help you understand the extant work on the topic,
+    possible questions, and indications about key variables or data
+    sources.
 
 -   Identify the papers/sources in your vignette.
 
 -   You shall refer to them in your oral demonstration to set context.
 
-## **2.5 Define One or More Use Cases**
-
-Given a topic, data sources, and literature review, each group shall define one or more [Use Cases](https://www.usability.gov/how-to-and-tools/methods/use-cases.html) for its app to focus its effort.
-
--   The Use Case shall specify “who” the typical user is expected to be (the Actor) and the typical questions your App should help the user/actor answer.
-
--   Specifying a use case allows you to make some assumptions about the skills and knowledge of your typical user/actor to focus your app development and shape your user interface design.
-
--   Summarize the Use Case(s) in your vignette and in your oral demonstration.
-
 ## **2.8 Identify Areas of Contribution in the Plan and the Vignette**
 
-Each student is expected to contribute to the group project in a meaningful manner.
+Each student is expected to contribute to the group project in a
+meaningful manner.
 
-The vignette shall contain a code chunk (with language engine `block` instead of `r` and chunk option `#| include: false`) indicating who contributed to the major portions of the project. These shall include the code for the app, code for data cleaning, and documentation at a minimum.
+The vignette shall contain a code chunk (with language engine `block`
+instead of `r` and chunk option `#| include: false`) indicating who
+contributed to the major portions of the project. These shall include
+the code for the app, code for data cleaning, and documentation at a
+minimum.
 
--   It is fine to have multiple people contribute to a given portion of code but the comments shall indicate the relative level of contribution, e.g., primary contributor, co-contributors, or reviewer, or whatever is appropriate.
+-   It is fine to have multiple people contribute to a given portion of
+    code but the comments shall indicate the relative level of
+    contribution, e.g., primary contributor, co-contributors, or
+    reviewer, or whatever is appropriate.
 
--   This allows for better interpretation of the GitHub analytics on commits and lines of code/data/text in a commit.
+-   This allows for better interpretation of the GitHub analytics on
+    commits and lines of code/data/text in a commit.
 
-```{block}
+```{r}
 #| include: false
-
-
+#Chris Cioffi:  -Project Plan - reviewer, Peer Review - co-contributor, Shiny App -	primary-contributor, Vignette- primary contributor 
 ```
-
-## **2.9 Create a README File for Your Repo**
-
--   Summarize the title and purpose of the App.
-
--   Identify the group members by name and GitHub ID.
-
--   If your repo requires acquiring or using API keys, include a link to the instructions for obtaining such keys.
-
--   Describe the license for the app. Consider [Creative Commons](https://quarto.org/docs/authoring/front-matter.html#cc).
