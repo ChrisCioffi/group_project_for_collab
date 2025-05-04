@@ -1,16 +1,24 @@
-# Group Project Template
-This template is for the group projects to use as a basis for their shiny app.
+# Senate Race FEC Helper  
 
-Instructions for the project are under the vignette folder and on Canvas.
+Purpose: A Shiny app that queries the FEC API in order to obtain donor information about Senate candidates running in states that have a Senate election in 2026.   
+The app produces donor and candidate stats about the state(s) selected by users by querying the FEC API. To run the app, users must have an API key from the FEC website. You can find more instructions on how to obtain the key here - https://api.open.fec.gov/developers/
+
+Once you have obtained a key, go to the app.r file and follow the instructions below the libraries to add it to your environment using library(keyring). 
+
+Group Members: 
+
+@ChrisCioffi
+Chris Cioffi 
+
+@eeames00
+Emily Eames
+
+@mimibeckemeier
+Mimi Beckemeier
+
+@youlybarry20
+Thierno Youssouf Barry
 
 
-2.9 Create a README File for Your Repo
-Summarize the title and purpose of the App.
-Identify the group members by name and GitHub ID.
-If your repo requires acquiring or using API keys, include a link to the instructions for obtaining such keys.
-Describe the license for the app. Consider Creative Commons.
-
-
-- Groups should rename the top level folder for their app and change the structure as best fits their app.
-- Be sure to delete the dummy files that are there to ensure the repo folders appear in the template.
+Senate Race FEC Helper © 2025 by Chris Cioffi, Emily Eames, Mimi Beckemeier, Thierno Youssouf Barry is licensed under Creative Commons Attribution-ShareAlike 4.0 International 
 

@@ -1,11 +1,12 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    https://shiny.posit.co/
-#
+---
+title: "615 Project"
+format: html
+editor: visual
+---
+
+Here's all the code needed to run the app so far - you can hit the play button to simulate a shiny environment - this can be where you start taking the names of states and turn it into maps
+
+```{r}
 library(shiny)
 library(tidyverse)
 library(keyring)
@@ -14,9 +15,9 @@ library(jsonlite)
 library(plotly)
 library(DT)
 
-# ONE THING YOU HAVE TO DO TO MAKE THIS RUN - get an FEC api key and save it by un-noting this out and adding it
-# you can sign up for a key here - https://api.open.fec.gov/developers/
-# key_set("fec_api_key")
+#ONE THING YOU HAVE TO DO TO MAKE THIS RUN - get an FEC api key and save it by un-noting this out and adding it 
+#you can sign up for a key here - https://api.open.fec.gov/developers/ 
+key_set("fec_api_key")
 
 ################## FUNCTION 1 ################
 
@@ -25,10 +26,10 @@ library(DT)
 fetch_candidate_ids <- function(state_abbreviations) {
   # Set the base URL for the FEC API
   base_url_for_candidate_name <- "https://api.open.fec.gov/v1/candidates/totals/"
-  
+
   # Initialize an empty list to store results
   committee_id_data <- list()
-  
+
   # Iterate through each state in the list of state abbreviations
   for (each_state in state_abbreviations) { # Define query parameters for the current state
     params_states_in_question <- list(
@@ -40,17 +41,17 @@ fetch_candidate_ids <- function(state_abbreviations) {
       is_active_candidate = TRUE,
       api_key = keyring::key_get("fec_api_key")
     )
-    
+
     # Try to fetch data for the current state
     tryCatch(
       {
         fundraising <- (request(base_url_for_candidate_name) |>
-                          req_url_query(!!!params_states_in_question) |>
-                          req_perform() |>
-                          resp_body_json(resp = _))$results |>
+          req_url_query(!!!params_states_in_question) |>
+          req_perform() |>
+          resp_body_json(resp = _))$results |>
           tibble(data = _) |>
           unnest_wider(data)
-        
+
         # Append to the results list using the state abbreviation as a key
         committee_id_data[[each_state]] <- fundraising
       },
@@ -59,14 +60,14 @@ fetch_candidate_ids <- function(state_abbreviations) {
       }
     )
   }
-  
+
   # Combine all data into a single dataframe
   candidates_per_state <- bind_rows(committee_id_data, .id = "state")
-  
+
   # Generate a list of candidate IDs
   list_candidates <- candidates_per_state |>
     select(name, candidate_id, receipts, other_political_committee_contributions, individual_itemized_contributions, party)
-  
+
   return(list_candidates) ## Corrected: Moved this line to ensure saving and loading happens first
 }
 
@@ -96,9 +97,9 @@ fetch_candidate_fundraising <- function(list_candidates) {
     tryCatch(
       {
         state_locations <- (request(base_url_for_candidate_fundraising) |>
-                              req_url_query(!!!params_candidate_fundraising) |>
-                              req_perform() |>
-                              resp_body_json(resp = _))$results |>
+          req_url_query(!!!params_candidate_fundraising) |>
+          req_perform() |>
+          resp_body_json(resp = _))$results |>
           tibble(data = _) |>
           unnest_wider(data)
         # Add a column identifying the candidate
@@ -170,6 +171,7 @@ state_abbreviations <- c(
 ui <- fluidPage(
   theme = bslib::bs_theme(bootswatch = "flatly", primary = "#0055A4", base_font = "Georgia"),
   titlePanel("2026 Senate Race Donations"),
+  
   sidebarLayout(
     sidebarPanel(
       checkboxGroupInput(
@@ -180,15 +182,12 @@ ui <- fluidPage(
       )
     ),
     mainPanel(
-      
-      #     textOutput("text_test"),
+      textOutput("text_test"),
       tabsetPanel(
-        #        tabPanel("testing", DTOutput("testingtable")), #for testing
-        tabPanel("Candidate Summary",  br(),DTOutput("candidate_id_table")),
-        tabPanel("Fundraising Summary", br(), DTOutput("candidate_fundraising_table")),
-        tabPanel("Bar Plot",  br(), plotlyOutput("itemized_plot", height = "100%")),
-        tabPanel("Donation Map",  br(),plotlyOutput("fundraising_map", height = "100%"))
-        
+        tabPanel("Candidate Summary", DTOutput("candidate_id_table")),
+        tabPanel("Fundraising Summary", DTOutput("candidate_fundraising_table")),
+        tabPanel("Bar Plot", plotlyOutput("fundraising_barplot", height = "400px")),
+        tabPanel("Donation Map", plotlyOutput("fundraising_map", height = "500px"))
       )
     )
   )
@@ -200,6 +199,7 @@ ui <- fluidPage(
 ########## BEGIN SHINY SERVER SECTION  ############
 
 server <- function(input, output, session) {
+  
   output$text_test <- renderText({
     paste("Selected states:", paste(input$state_select, collapse = ", "))
   })
@@ -224,62 +224,20 @@ server <- function(input, output, session) {
     datatable(candidate_fundraising_df())
   })
   
-  ###### for testing
-  
-  # output$testingtable <- renderDT({
-  #      df <- list_candidates()
-  # df |>
-  #   mutate(receipts = (receipts - (individual_itemized_contributions+other_political_committee_contributions))) |>
-  #     pivot_longer(cols = c(receipts, individual_itemized_contributions, other_political_committee_contributions),
-  #                  names_to = "Type", values_to = "Amount") |>
-  #     mutate(Type = recode(Type,
-  #                          receipts = "Small-dollar donations, transfers, other donations",
-  #                          individual_itemized_contributions = "Itemized",
-  #                          other_political_committee_contributions = "PACs"))
-  #
-  # })
-  ######## for testing
-  
-  # Plot itemized vs pacs
+  # Plot itemized vs unitemized
   output$itemized_plot <- renderPlotly({
     df <- list_candidates()
     req(nrow(df) > 0)
     
     df_long <- df |>
-      filter(receipts > 1) |>
-      mutate(receipts = (receipts - (individual_itemized_contributions + other_political_committee_contributions))) |>
-      pivot_longer(
-        cols = c(receipts, individual_itemized_contributions, other_political_committee_contributions),
-        names_to = "Type", values_to = "Amount"
-      ) |>
-      mutate(
-        Type = recode(Type,
-                      receipts = "Small-dollar donations, transfers, other donations",
-                      individual_itemized_contributions = "Donations over $200",
-                      other_political_committee_contributions = "PACs"
-        ),
-        name_party = paste0(name, " (", party, ")")
-      )
+      pivot_longer(cols = c(individual_itemized_contributions, individual_unitemized_contributions),
+                   names_to = "Type", values_to = "Amount") |>
+      mutate(Type = recode(Type,
+                           individual_itemized_contributions = "Itemized",
+                           individual_unitemized_contributions = "Unitemized"))
     
-    plot_ly(df_long, x = ~name_party, y = ~Amount, color = ~Type, type = "bar") |>
-      layout(
-        title = "Contributions to candidates by type",
-        barmode = "stack",
-        yaxis = list(
-          title = "Amount",
-          tickprefix = "$",
-          tickformat = ",.0f" # comma thousands, no decimals
-        ),
-        xaxis = list(
-          title = "Candidate (Party)"
-        ),
-        legend = list(
-          orientation = "h", # horizontal
-          xanchor = "center", # anchor legend to the center
-          x = 0.5, # center of the plot
-          y = -0.2 # below the plot
-        )
-      )
+    plot_ly(df_long, x = ~name, y = ~Amount, color = ~Type, type = "bar") |>
+      layout(title = "Itemized vs Unitemized Contributions", barmode = "stack")
   })
   
   # Map
@@ -291,16 +249,16 @@ server <- function(input, output, session) {
       group_by(state) |>
       summarise(total = sum(total, na.rm = TRUE))
     
-    plot_geo(df_map, locationmode = "USA-states") |>
+    plot_geo(df_map, locationmode = 'USA-states') |>
       add_trace(
         z = ~total,
         locations = ~state,
         color = ~total,
         colors = "Blues",
-        text = ~ paste(state, "<br>$", round(total, 2)),
+        text = ~paste(state, "<br>$", round(total, 2)),
         hoverinfo = "text"
       ) |>
-      layout(geo = list(scope = "usa"), title = "Donation Origins by State for All Candidates")
+      layout(geo = list(scope = 'usa'), title = "Donation Origins by State")
   })
   
   # Stats
@@ -310,8 +268,8 @@ server <- function(input, output, session) {
     
     df <- df |> mutate(home_state = ifelse(state == substr(candidate_id, 1, 2), "in_state", "out_of_state"))
     
-    avg_contribs <- df |>
-      group_by(home_state) |>
+    avg_contribs <- df |> 
+      group_by(home_state) |> 
       summarise(avg_total = mean(total, na.rm = TRUE), .groups = "drop")
     
     t_test <- t.test(total ~ home_state, data = df)
@@ -325,3 +283,4 @@ server <- function(input, output, session) {
 ########## END SHINY SERVER SECTION  ############
 
 shinyApp(ui, server)
+```
