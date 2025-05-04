@@ -1,6 +1,6 @@
 ---
 title: 'DATA-413/613 Final Project: Vignette'
-author: "Chris Cioffi, Emily Eames, Mimi Beckemeier, Thierno Youssouf Barry"
+author: "Chris Cioffi, Emily Eames, Mimi Beckemeier, Youssouf Barry"
 number-sections: true
 code-line-numbers: true
 format:
