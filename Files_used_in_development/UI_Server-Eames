@@ -1,0 +1,116 @@
+##Updated UI and Server 
+########## BEGIN SHINY UI  ############
+
+### No changes made to UI
+
+ui <- fluidPage(
+  theme = bslib::bs_theme(bootswatch = "flatly", primary = "#0055A4", base_font = "Georgia"),
+  titlePanel("2026 Senate Race Donations"),
+
+  sidebarLayout(
+    sidebarPanel(
+      checkboxGroupInput(
+        inputId = "state_select",
+        label = "Choose State(s):",
+        choices = state_abbreviations,
+        selected = "AL"
+      )
+    ),
+    mainPanel(
+      textOutput("text_test"),
+      tabsetPanel(
+        tabPanel("Candidate Summary", DTOutput("candidate_id_table")),
+        tabPanel("Fundraising Summary", DTOutput("candidate_fundraising_table")),
+        tabPanel("Bar Plot", plotlyOutput("fundraising_barplot", height = "400px")),
+        tabPanel("Donation Map", plotlyOutput("fundraising_map", height = "500px"))
+      )
+    )
+  )
+)
+
+
+########## END SHINY UI  ############
+
+########## BEGIN SHINY SERVER SECTION  ############
+
+server <- function(input, output, session) {
+  
+  output$text_test <- renderText({
+    paste("Selected states:", paste(input$state_select, collapse = ", "))
+  })
+  
+  list_candidates <- reactive({
+    req(input$state_select)
+    fetch_candidate_ids(input$state_select)
+  })
+  
+  output$candidate_id_table <- renderDT({
+    req(list_candidates())
+    datatable(list_candidates())  ##Added req() and datable()
+  })
+  
+  candidate_fundraising_df <- reactive({
+    req(list_candidates())
+    fetch_candidate_fundraising(list_candidates()) 
+  })
+  
+  output$candidate_fundraising_table <- renderDT({
+    req(candidate_fundraising_df())
+    datatable(candidate_fundraising_df())  ##Added req() and datable()
+  })
+  
+  # Add a new plot for itemized vs unitemized so we can see the side-by-side comparison
+  output$itemized_plot <- renderPlotly({
+    df <- list_candidates()
+    req(nrow(df) > 0)
+    
+    df_long <- df |>
+      pivot_longer(cols = c(individual_itemized_contributions, individual_unitemized_contributions),
+                   names_to = "Type", values_to = "Amount") |>
+      mutate(Type = recode(Type,
+                           individual_itemized_contributions = "Itemized",
+                           individual_unitemized_contributions = "Unitemized"))
+    
+    plot_ly(df_long, x = ~name, y = ~Amount, color = ~Type, type = "bar") |>
+      layout(title = "Itemized vs Unitemized Contributions", barmode = "stack")
+  })
+  
+  # Map for Donation Origins
+  output$fundraising_map <- renderPlotly({
+    df <- candidate_fundraising_df()
+    req(nrow(df) > 0)
+    
+    df_map <- df |>
+      group_by(state) |>   
+      summarise(total = sum(total, na.rm = TRUE))
+    
+    plot_geo(df_map, locationmode = 'USA-states') |>
+      add_trace(
+        z = ~total,
+        locations = ~state,
+        color = ~total,
+        colors = "Blues", ###It's not super important but I think we should us Green or Purple. Just not Red or Blue.
+        text = ~paste(state, "<br>$", round(total, 2)),
+        hoverinfo = "text"
+      ) |>
+      layout(geo = list(scope = 'usa'), title = "Donation Origins by State")
+  })
+  
+  # Added a new section for summary stats on in-state vs out-of-state donations. Looks at the t-test
+  # for donation averages. 
+  output$summary_stats <- renderPrint({
+    df <- candidate_fundraising_df()
+    req(nrow(df) > 0)
+    
+    df <- df |> mutate(home_state = ifelse(state == substr(candidate_id, 1, 2), "in_state", "out_of_state"))
+    
+    avg_contribs <- df |> 
+      group_by(home_state) |> 
+      summarise(avg_total = mean(total, na.rm = TRUE), .groups = "drop")
+    
+    t_test <- t.test(total ~ home_state, data = df)
+    
+    print(avg_contribs)
+    print(t_test)
+  })
+}
