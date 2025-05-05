@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Chris Cioffi, Emily Eames, Mimi Beckemeier, Thierno Youssouf Barry">
+<meta name="author" content="Chris Cioffi, Emily Eames, Mimi Beckemeier, Youssouf Barry">
 
 <title>DATA-413/613 Final Project: Vignette</title>
 <style>
@@ -2618,7 +2618,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Chris Cioffi, Emily Eames, Mimi Beckemeier, Thierno Youssouf Barry </p>
+             <p>Chris Cioffi, Emily Eames, Mimi Beckemeier, Youssouf Barry </p>
           </div>
   </div>
     
@@ -2690,13 +2690,13 @@ vertical-align: -.125em;
 <p>The users can select states that they want to examine and then will be provided the dataframes that are auto-generated based on their queries.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="images/Screenshot%202025-05-04%20at%2011.59.52%20AM.png" class="img-fluid figure-img"></p>
+<p><img src="images/Screenshot%202025-05-04%20at%2012.05.26%20PM.png" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">Example of the UI with states selected and the basic candidate stats auto-generated</figcaption><p></p>
 </figure>
 </div>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="images/Screenshot%202025-05-04%20at%2012.01.21%20PM.png" class="img-fluid figure-img"></p>
+<p><img src="images/Screenshot%202025-05-04%20at%2012.04.12%20PM.png" class="img-fluid figure-img"></p>
 <p></p><figcaption class="figure-caption">Deeper dive on candidate stats, giving where donors originate from</figcaption><p></p>
 </figure>
 </div>
@@ -2725,15 +2725,33 @@ vertical-align: -.125em;
 </div>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="images/Screenshot%202025-05-04%20at%2012.04.12%20PM.png" class="img-fluid figure-img"></p>
-<p></p><figcaption class="figure-caption">Example of functionality showing what kinds of donors each candidate is raising money from.</figcaption><p></p>
+<p><img src="images/Screenshot%202025-05-05%20at%2011.55.07%20AM.png" class="img-fluid figure-img"></p>
+<p></p><figcaption class="figure-caption">Example of functionality showing what kinds of donors each candidate is raising money from and its statistical significance with an explainer on what that means.</figcaption><p></p>
 </figure>
 </div>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="images/Screenshot%202025-05-04%20at%2012.05.26%20PM.png" class="img-fluid figure-img"></p>
-<p></p><figcaption class="figure-caption">Example showing where donations from that state’s race are coming from.</figcaption><p></p>
-</figure>
+<p>We also created a regression analysis with boxplot showing donation by home state and party. In the future we will provide more documentation on errors and allow users to select individual candidates to hone in their analysis.</p>
+<p>Sample code of the regression analysis:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>  output<span class="sc">$</span>model_summary <span class="ot">&lt;-</span> <span class="fu">renderPrint</span>({</span>
+<span id="cb3-2"><a href="#cb3-2"></a>    df <span class="ot">&lt;-</span> <span class="fu">candidate_fundraising_df</span>()</span>
+<span id="cb3-3"><a href="#cb3-3"></a>    <span class="fu">req</span>(<span class="fu">nrow</span>(df) <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
+<span id="cb3-4"><a href="#cb3-4"></a>    </span>
+<span id="cb3-5"><a href="#cb3-5"></a>    <span class="co"># Create the home_state variable (in_state or out_of_state)</span></span>
+<span id="cb3-6"><a href="#cb3-6"></a>    df <span class="ot">&lt;-</span> df <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">candidate_state =</span> <span class="fu">substr</span>(candidate_id, <span class="dv">3</span>, <span class="dv">4</span>))  <span class="co"># extract state code from candidate_id</span></span>
+<span id="cb3-7"><a href="#cb3-7"></a>    df <span class="ot">&lt;-</span> df <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">home_state =</span> <span class="fu">ifelse</span>(state <span class="sc">==</span> candidate_state, <span class="st">&quot;in_state&quot;</span>, <span class="st">&quot;out_of_state&quot;</span>))</span>
+<span id="cb3-8"><a href="#cb3-8"></a>    </span>
+<span id="cb3-9"><a href="#cb3-9"></a>    <span class="co"># Ensure &#39;home_state&#39; and &#39;party&#39; are factors for regression</span></span>
+<span id="cb3-10"><a href="#cb3-10"></a>    df <span class="ot">&lt;-</span> df <span class="sc">|&gt;</span> <span class="fu">mutate</span>(</span>
+<span id="cb3-11"><a href="#cb3-11"></a>      <span class="at">home_state =</span> <span class="fu">factor</span>(home_state, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;in_state&quot;</span>, <span class="st">&quot;out_of_state&quot;</span>)),</span>
+<span id="cb3-12"><a href="#cb3-12"></a>      <span class="at">party =</span> <span class="fu">factor</span>(party)</span>
+<span id="cb3-13"><a href="#cb3-13"></a>    )</span>
+<span id="cb3-14"><a href="#cb3-14"></a>    </span>
+<span id="cb3-15"><a href="#cb3-15"></a>    <span class="co"># Fit the linear regression model</span></span>
+<span id="cb3-16"><a href="#cb3-16"></a>    model <span class="ot">&lt;-</span> <span class="fu">lm</span>(total <span class="sc">~</span> home_state <span class="sc">+</span> party, <span class="at">data =</span> df)</span>
+<span id="cb3-17"><a href="#cb3-17"></a>    </span>
+<span id="cb3-18"><a href="#cb3-18"></a>    <span class="co"># Display the summary of the model (coefficients, p-values, etc.)</span></span>
+<span id="cb3-19"><a href="#cb3-19"></a>    <span class="fu">summary</span>(model)</span>
+<span id="cb3-20"><a href="#cb3-20"></a>  })</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="references" class="level2" data-number="4">

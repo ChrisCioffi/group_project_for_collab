@@ -1,11 +1,3 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    https://shiny.posit.co/
-#
 library(shiny)
 library(tidyverse)
 library(keyring)
@@ -19,8 +11,6 @@ library(DT)
 # key_set("fec_api_key")
 
 ################## FUNCTION 1 ################
-
-
 
 fetch_candidate_ids <- function(state_abbreviations) {
   # Set the base URL for the FEC API
@@ -70,7 +60,6 @@ fetch_candidate_ids <- function(state_abbreviations) {
   return(list_candidates) ## Corrected: Moved this line to ensure saving and loading happens first
 }
 
-
 ########## END OF FUNCTION ############
 
 
@@ -115,7 +104,7 @@ fetch_candidate_fundraising <- function(list_candidates) {
   final_data <- bind_rows(all_data)
   # make sure the candidate name, party, etc is associated with each line
   final_data <- list_candidates |>
-    select(name, candidate_id) |>
+    select(name, candidate_id, party) |>
     right_join(final_data, by = "candidate_id")
   return(final_data)
 }
@@ -180,29 +169,33 @@ ui <- fluidPage(
       )
     ),
     mainPanel(
-      
-      #     textOutput("text_test"),
       tabsetPanel(
-        #        tabPanel("testing", DTOutput("testingtable")), #for testing
-        tabPanel("Candidate Summary",  br(),DTOutput("candidate_id_table")),
+        tabPanel("Candidate Summary",  br(), DTOutput("candidate_id_table")),
         tabPanel("Fundraising Summary", br(), DTOutput("candidate_fundraising_table")),
         tabPanel("Bar Plot",  br(), plotlyOutput("itemized_plot", height = "100%")),
-        tabPanel("Donation Map",  br(),plotlyOutput("fundraising_map", height = "100%"))
-        
+        tabPanel("Donation Map",  br(), plotlyOutput("fundraising_map", height = "100%")),
+        tabPanel("Summary Stats", 
+                 br(), 
+                 verbatimTextOutput("summary_stats"), 
+                 br(), 
+                 verbatimTextOutput("t_test_explanation") # New output for explanation
+        ),
+        tabPanel("Regression Analysis", 
+                 br(), 
+                 verbatimTextOutput("model_summary"),   # Model summary output
+                 br(),
+                 plotOutput("regression_plot")          # Regression plot output
+        )
       )
     )
   )
 )
-
 
 ########## END SHINY UI  ############
 
 ########## BEGIN SHINY SERVER SECTION  ############
 
 server <- function(input, output, session) {
-  output$text_test <- renderText({
-    paste("Selected states:", paste(input$state_select, collapse = ", "))
-  })
   
   list_candidates <- reactive({
     req(input$state_select)
@@ -224,23 +217,7 @@ server <- function(input, output, session) {
     datatable(candidate_fundraising_df())
   })
   
-  ###### for testing
-  
-  # output$testingtable <- renderDT({
-  #      df <- list_candidates()
-  # df |>
-  #   mutate(receipts = (receipts - (individual_itemized_contributions+other_political_committee_contributions))) |>
-  #     pivot_longer(cols = c(receipts, individual_itemized_contributions, other_political_committee_contributions),
-  #                  names_to = "Type", values_to = "Amount") |>
-  #     mutate(Type = recode(Type,
-  #                          receipts = "Small-dollar donations, transfers, other donations",
-  #                          individual_itemized_contributions = "Itemized",
-  #                          other_political_committee_contributions = "PACs"))
-  #
-  # })
-  ######## for testing
-  
-  # Plot itemized vs pacs
+  # Plot itemized vs PACs
   output$itemized_plot <- renderPlotly({
     df <- list_candidates()
     req(nrow(df) > 0)
@@ -303,24 +280,109 @@ server <- function(input, output, session) {
       layout(geo = list(scope = "usa"), title = "Donation Origins by State for All Candidates")
   })
   
-  # Stats
+  output$model_summary <- renderPrint({
+    df <- candidate_fundraising_df()
+    req(nrow(df) > 0)
+    
+    # Create the home_state variable (in_state or out_of_state)
+    df <- df |> mutate(candidate_state = substr(candidate_id, 3, 4))  # extract state code from candidate_id
+    df <- df |> mutate(home_state = ifelse(state == candidate_state, "in_state", "out_of_state"))
+    
+    # Ensure 'home_state' and 'party' are factors for regression
+    df <- df |> mutate(
+      home_state = factor(home_state, levels = c("in_state", "out_of_state")),
+      party = factor(party)
+    )
+    
+    # Fit the linear regression model
+    model <- lm(total ~ home_state + party, data = df)
+    
+    # Display the summary of the model (coefficients, p-values, etc.)
+    summary(model)
+  })
+  
+  output$regression_plot <- renderPlot({
+    df <- candidate_fundraising_df()
+    req(nrow(df) > 0)
+    
+    # Create the home_state variable (in_state or out_of_state)
+    df <- df |> mutate(candidate_state = substr(candidate_id, 3, 4))  # extract state code from candidate_id
+    df <- df |> mutate(home_state = ifelse(state == candidate_state, "in_state", "out_of_state"))
+    
+    # Ensure 'home_state' and 'party' are factors for regression
+    df <- df |> mutate(
+      home_state = factor(home_state, levels = c("in_state", "out_of_state")),
+      party = factor(party)
+    )
+    
+    # Plot donations vs. home_state with colors by party
+    ggplot(df, aes(x = home_state, y = total, color = party)) +
+      geom_boxplot() +
+      labs(title = "Donation Distribution by Home State and Party",
+           x = "Home State (In-State vs. Out-of-State)",
+           y = "Total Donations") +
+      theme_minimal()
+  })
+  
+  
   output$summary_stats <- renderPrint({
     df <- candidate_fundraising_df()
     req(nrow(df) > 0)
     
-    df <- df |> mutate(home_state = ifelse(state == substr(candidate_id, 1, 2), "in_state", "out_of_state"))
+    # Classify donations as in-state vs out-of-state
+    df <- df |> mutate(home_state = ifelse(state == substr(candidate_id, 3, 4), "in_state", "out_of_state"))
     
+    # Calculate average contributions per group
     avg_contribs <- df |>
       group_by(home_state) |>
-      summarise(avg_total = mean(total, na.rm = TRUE), .groups = "drop")
+      summarise(
+        avg_total = mean(total, na.rm = TRUE),
+        median_total = median(total, na.rm = TRUE),
+        sd_total = sd(total, na.rm = TRUE),
+        .groups = "drop"
+      )
     
-    t_test <- t.test(total ~ home_state, data = df)
+    # Perform Welch's t-test
+    t_test_result <- t.test(total ~ home_state, data = df)
     
+    # Output the average contribution statistics and the t-test results together
+    cat("Average Contributions by Home State:\n")
     print(avg_contribs)
-    print(t_test)
+    cat("\nWelch's T-Test Result:\n")
+    print(t_test_result)
   })
+  
+  
+  output$t_test_explanation <- renderText({
+    df <- candidate_fundraising_df()
+    req(nrow(df) > 0)
+    
+    # Ensure home_state is classified correctly
+    df <- df |> mutate(candidate_state = substr(candidate_id, 3, 4))
+    df <- df |> mutate(home_state = ifelse(state == candidate_state, "in_state", "out_of_state"))
+    
+    # Perform Welch's t-test
+    t_test_result <- t.test(total ~ home_state, data = df)
+    
+    # Explanation text based on p-value
+    p_value <- t_test_result$p.value
+    if (p_value < 0.05) {
+      result_text <- "The p-value is less than 0.05, so we reject the null hypothesis. This means that there is a statistically significant difference between in-state and out-of-state donations. In other words, the location of the donor (whether they are from the candidate's home state or not) has an effect on the total donation amount."
+    } else {
+      result_text <- "The p-value is greater than 0.05, so we fail to reject the null hypothesis. This means that there is no statistically significant difference between in-state and out-of-state donations. The location of the donor does not appear to have a major effect on the total donation amount."
+    }
+    
+    # Add more context and interpretation
+    interpretation <- paste(
+      result_text,
+      "\n\nThe t-test compares the average donation amounts between two groups: in-state donors and out-of-state donors. The null hypothesis assumes that there is no difference between these groups. The t-statistic is a measure of how much the means of the two groups differ, while the p-value tells us whether this difference is statistically significant.",
+      "\n\nIf the p-value is low (typically below 0.05), it suggests that the observed difference is unlikely to have occurred by chance, and we conclude that the difference is statistically significant."
+    )
+    
+    interpretation
+  })
+  
 }
-
 
 ########## END SHINY SERVER SECTION  ############
 
