@@ -11,9 +11,9 @@ editor:
     wrap: 72
 ---
 
-#Senate Race FEC Helper
+# Senate Race FEC Helper
 
-##Use Case
+## Use Case
 
 This app will be used by U.S. voters hoping to get a better
 understanding of whether their candidate is raising money from their own
@@ -25,8 +25,15 @@ elections in 2026.
 
 ##Required Packages
 
-This app requires functionalities from the following packages: shiny
-tidyverse keyring httr2 jsonlite plotly DT
+This app requires functionalities from the following packages:
+
+-   shiny
+-   tidyverse
+-   keyring
+-   httr2
+-   jsonlite
+-   plotly
+-   DT
 
 ## Data Source and Structure
 
@@ -103,10 +110,15 @@ The users can select states that they want to examine and then will be
 provided the dataframes that are auto-generated based on their queries.
 
 ![Example of the UI with states selected and the basic candidate stats
-auto-generated](images/Screenshot 2025-05-04 at 12.05.26 PM.png)
+auto-generated.](images/Screenshot3.png)
 
-![Deeper dive on candidate stats, giving where donors originate
-from](images/Screenshot 2025-05-04 at 12.04.12 PM.png)
+![Example of a map that is rendered after candidates are selected,
+giving context to where donations are coming
+from.](images/Screenshot4.png)
+
+![Shows data map is created from, providing the deeper dive on candidate
+stats and gives context on where donors originate
+from.](images/Screenshot2.png)
 
 ## Statistical Analysis Inputs, Controls, and Outputs
 
@@ -146,7 +158,7 @@ purposes.
 
 ![Example of functionality showing what kinds of donors each candidate
 is raising money from and its statistical significance with an explainer
-on what that means.](images/Screenshot 2025-05-05 at 11.55.07 AM.png)
+on what that means.](images/Screenshot5.png)
 
 We also created a regression analysis with boxplot showing donation by
 home state and party. In the future we will provide more documentation
@@ -277,6 +289,7 @@ gap in political finance literacy.
 ```{r}
 #| include: false
 #Chris Cioffi:  -Project Plan - reviewer, Peer Review - co-contributor, Progress report - reviewer, Shiny App -	primary-contributor, Vignette- primary contributor 
-#Emily Eames:  -Project Plan - reviewer, Peer Review - co-contributor, Progress report - co-contributor , Shiny App -	co-contributor, Vignette- reviewer  
-
+#Emily Eames:  -Project Plan - reviewer, Peer Review - co-contributor, Progress Report - co-contributor, Shiny App -	co-contributor, Vignette- reviewer  
+#Mimi Beckemeier - Project Plan - primary contributor, Peer Review - primary contributor, Progress Report- co-contributor, Shiny App - co-contributor, Vignette- reviewer 
+#Thierno Youssouf Barry: -Project Plan - reviewer, Peer Review - reviewer, Progress report - reviewer, Shiny App -	reviewer, Vignette-partial-contributor
 ```
