@@ -1,0 +1,63 @@
+---
+title: "Progress Report"
+format: html
+editor: visual
+---
+
+## Progress Report
+
+### Admin
+
+**Political Donor Insights**
+
+Names: Chris Cioffi, Emily Eames, Barry Youssouf, Mimi Beckemeier (all DATA-613)
+
+### Topic & Data
+
+**Updates**
+
+Context: Our context for this project remains unchanged, with the goal to be for users to analyze political donor data using our shiny app that is ran on 2026 senate donor data. Our literature review has begun, with scholarly sources affirming our need for insights on political donations being accessible to everyday people.
+
+Data: Our data source, the FEC senate 2026 donor data, remains unchanged. It has proven to be more than useful for this project. Our methods of tidying have slightly changed, using tidyverse to speed up the process. No additional issues have been found during this process thus far.
+
+### Final Use Case
+
+The actor for our final use case is a constituent who is interested in knowing who is funding their state's Senatorial Candidates for the upcoming congressional election. The constituent has heard one candidate continuously speak on buying local, how she relies on the people of her state and is working for them, and how her top priority is to fight for the interests of the people of her state.
+
+The constituent wants to know who is primarily funding this candidate’s campaign. Are the people of her state donating to her, and if so, how much? How much are the people of her state supporting her campaign, and how much of her donations are coming from PACs or out-of-state entities?
+
+Let’s so our constituent is from the State of Idaho. In still case, the constituent would be interested primarily in the data provided for Idaho. The data can easily showcase where donations are coming from and how much. There are multiple ways to break down the data visually. In this case, the easiest way for our user is to select the data for Idaho and then select the option for the Donation Map. This will show the user which states have been donating to their Senator's campaign, and by how much. In this case, the user may be surprised to learn that the majority of the donations are coming not from Idaho, but Texas. If our user wanted to see if this was the same case for other states, they could repeat this process for any of the other states listed on the sidebar.
+
+### App Design
+
+Users are able to look at the data using a bar chart, which breaks down the data by three categories (Small Donations, PACs, and Donations over \$200). They can look at the candidates’ summary, which shows all candidates within the state, their candidate ID, receipts, other political committee contributions, individualized itemized contributions, and their political party. They can look at the fundraising summary to compare state data, and lastly, they can look at where the donations are coming from and how much, using a heat map of the United States.
+
+##Ethical Review
+
+Our ethical review has not had many changes. We still believe that our app is an ethical use of the FEC data and that it is not going to be exploiting any information that is not already publicly available. The goal is for anyone who wants to see this data to have access to it, so accessibility will ideally not be an issue. Due to the data being directly from the FEC itself, we are not concerned with how this data was collected. We plan on giving a disclaimer on any data that may be confusing to interpret.
+
+### Demonstration Outline
+
+Introduction - Emily 
+
+Data Source/EDA Workflow - Chris
+
+Analysis/Modeling Workflow - Mimi
+
+Summary/Conclusion - Barry 
+
+Time Allocation - With 4 people in the group, and with our 15-minute time limit, each person can speak up for just over 3.5 mins. With some sections needing a little more detail or time, that number may change depending on the needs of our group. 
+
+### Risk Assessment
+
+One major complication we have ran into was how to best design the app itself for user interaction. Shiny comes with a lot of freedom, so we had to be specific with our layouts, which we were not sure of at first.
+
+### Collaboration
+
+Emily- UI design and interactivity (completed, finishing touches as we prepare for our presentation)
+
+Mimi- Mapping and plotting logic (completed, working on final presentation)
+
+Chris- API integration and data wrangling (completed, working on final presentation)
+
+Barry- Ethical review, documentation, and testing (completed, working on literature)
