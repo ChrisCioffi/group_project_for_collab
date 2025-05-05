@@ -291,5 +291,5 @@ gap in political finance literacy.
 #Chris Cioffi:  -Project Plan - reviewer, Peer Review - co-contributor, Progress report - reviewer, Shiny App -	primary-contributor, Vignette- primary contributor 
 #Emily Eames:  -Project Plan - reviewer, Peer Review - co-contributor, Progress Report - co-contributor, Shiny App -	co-contributor, Vignette- reviewer  
 #Mimi Beckemeier - Project Plan - primary contributor, Peer Review - primary contributor, Progress Report- co-contributor, Shiny App - co-contributor, Vignette- reviewer 
-#Thierno Youssouf Barry: -Project Plan - reviewer, Peer Review - reviewer, Progress report - reviewer, Shiny App -	reviewer, Vignette-partial-contributor
+#Youssouf Barry:Project plan- co contributor, vignette-literature review, summary and conclusion 
 ```
